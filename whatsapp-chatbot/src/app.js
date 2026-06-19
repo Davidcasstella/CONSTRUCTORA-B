@@ -54,6 +54,10 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Serve uploaded media (status images, etc.) as static files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
+// Serve React frontend (production build)
+const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendDistPath));
+
 
 // ===========================================
 // RUTAS
@@ -73,11 +77,6 @@ app.use('/api', apiLimiter);
 // Rutas API
 app.use('/api', routes);
 
-// Ruta principal - Interfaz Web
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-});
-
 // ===========================================
 // MANEJO DE ERRORES
 // ===========================================
@@ -93,4 +92,13 @@ app.use('/api/*', (req, res) => {
 // Middleware de errores global
 app.use(errorMiddleware);
 
+// Catch-all: serve React frontend for client-side routing
+const fs = require('fs');
+if (fs.existsSync(path.join(frontendDistPath, 'index.html'))) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
+
 module.exports = app;
+
