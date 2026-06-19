@@ -1,0 +1,350 @@
+/* Dashboard Layout — Sidebar, header, main content area */
+/* Extracted from dashboard.css */
+
+    /* ========================================
+       SIDEBAR (BARRA LATERAL IZQUIERDA)
+       ======================================== */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: linear-gradient(180deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+      color: var(--white);
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+    }
+
+    /* Logo Section */
+    .sidebar-logo {
+      padding: 19px 14px;
+      /* Reducido 12%: 22px → 19px, 16px → 14px */
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-logo img {
+      max-width: 88px;
+      /* Reducido 12%: 100px → 88px */
+      height: auto;
+      margin-bottom: 7px;
+      /* Reducido 12%: 8px → 7px */
+    }
+
+    .sidebar-logo-text {
+      font-size: 15px;
+      /* Reducido 12%: 17px → 15px */
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 4px;
+      /* Se mantiene */
+    }
+
+    .sidebar-logo-subtitle {
+      font-size: 9px;
+      /* Reducido 12%: 10px → 9px */
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 400;
+    }
+
+    /* Navigation Menu */
+    .sidebar-nav {
+      flex: 1;
+      padding: 14px 0;
+      /* Reducido 12%: 16px → 14px */
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 11px 18px;
+      /* Reducido 12%: 12px → 11px, 20px → 18px */
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--white);
+    }
+
+    .nav-item.active {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--white);
+      border-left-color: var(--light-green);
+      font-weight: 600;
+    }
+
+    .nav-item-icon {
+      font-size: 16px;
+      /* Reducido 12%: 18px → 16px */
+      margin-right: 11px;
+      /* Reducido 12%: 12px → 11px */
+      width: 19px;
+      /* Reducido 12%: 22px → 19px */
+      text-align: center;
+    }
+
+    .nav-item-text {
+      font-size: 11px;
+      /* Reducido 12%: 13px → 11px */
+    }
+
+    .nav-section-title {
+      padding: 14px 18px 7px;
+      /* Reducido 12%: 16px → 14px, 20px → 18px, 8px → 7px */
+      font-size: 9px;
+      /* Reducido 12%: 10px → 9px */
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 600;
+      letter-spacing: 0.35px;
+      /* Reducido 12%: 0.4px → 0.35px */
+    }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+      padding: 18px;
+      /* Reducido 12%: 20px → 18px */
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 10px;
+      /* Reducido 12%: 11px → 10px */
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* ========================================
+       MAIN CONTENT AREA
+       ======================================== */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ========================================
+       HEADER (BARRA SUPERIOR)
+       ======================================== */
+    .dashboard-header {
+      height: var(--header-height);
+      background: var(--white);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 19px;
+      /* Reducido 12%: 22px → 19px */
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      /* Reducido 12%: 16px → 14px */
+    }
+
+    .header-title {
+      font-size: 18px;
+      /* Reducido 12%: 20px → 18px */
+      font-weight: 600;
+      color: var(--dark-gray);
+    }
+
+    .header-subtitle {
+      font-size: 11px;
+      /* Reducido 12%: 12px → 11px */
+      color: var(--medium-gray);
+      font-weight: 400;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      /* Reducido 12%: 15px → 13px */
+    }
+
+    /* ========================================
+       RELOJ DEL DASHBOARD
+       ======================================== */
+    .dashboard-clock {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+      color: white;
+      box-shadow: 0 2px 8px rgba(7, 94, 84, 0.2);
+    }
+
+    .dashboard-clock .clock-icon {
+      font-size: 16px;
+    }
+
+    .dashboard-clock .clock-time {
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+    }
+
+    .dashboard-clock .clock-seconds {
+      opacity: 0.8;
+      font-size: 12px;
+    }
+
+    .header-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--light-gray);
+      color: var(--medium-gray);
+    }
+
+    .header-status-badge.connected {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .header-status-badge.waiting {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .header-status-badge.disconnected {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .header-status-badge.connected .status-dot {
+      background: #2e7d32;
+    }
+
+    .header-status-badge.waiting .status-dot {
+      background: #ef6c00;
+    }
+
+    .header-status-badge.disconnected .status-dot {
+      background: #c62828;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+
+/* DOCUMENTS UPLOAD BUTTON */
+    /* ========================================
+       DOCUMENTS STYLES
+       ======================================== */
+    .header-upload-btn {
+      background: var(--primary-green);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .header-upload-btn:hover {
+      background: var(--secondary-green);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(7, 94, 84, 0.3);
+    }
+
+
+/* CONTENT AREA */
+    /* ========================================
+       CONTENT AREA
+       ======================================== */
+    .dashboard-content {
+      flex: 1;
+      padding: 18px;
+      /* Reducido 12%: 20px → 18px */
+      max-width: 1050px;
+      /* Reducido 12%: 1200px → 1050px */
+      width: 100%;
+      margin: 0 auto;
+      overflow-x: hidden;
+      /* Previene scroll horizontal en el layout general */
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      /* Reducido 12%: 6px → 5px */
+      margin-bottom: 16px;
+      /* Reducido 12%: 18px → 16px */
+      font-size: 11px;
+      /* Reducido 12%: 13px → 11px */
+      color: var(--medium-gray);
+    }
+
+    .breadcrumb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .breadcrumb-separator {
+      color: var(--border-gray);
+    }
+
+    .breadcrumb-active {
+      color: var(--primary-green);
+      font-weight: 500;
+    }
+
+    /* ========================================
+       CONTENT CARD (ENVUELVE EL CONTENIDO ORIGINAL)
+       ======================================== */
+    .content-card {
+      background: var(--white);
+      border-radius: 12px;
+      /* Reducido 12%: 14px → 12px */
+      padding: 25px;
+      /* Reducido 12%: 28px → 25px */
+      box-shadow: var(--shadow);
+      min-height: calc(100vh - 132px);
+      /* Reducido 12%: 150px → 132px */
+    }
+

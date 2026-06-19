@@ -1,0 +1,94 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (CONTIENE SECRETS - NUNCA SUBIR)
+.env
+.env.local
+.env.*.local
+settings.json
+
+# Llaves SSH (NUNCA SUBIR)
+*.pem
+chatbot-production-key.pem
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Archivos subidos (temporal)
+uploads/*
+!uploads/.gitkeep
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build
+dist/
+build/
+
+# Coverage
+coverage/
+
+# Temporal
+tmp/
+temp/
+
+# whatsapp-web.js (SESIONES Y CACHE)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Backups
+backups/
+
+# Datos locales y estados
+data/session-registry.json
+
+# Pruebas y Stress
+test-uploads/
+stress-test-uploads/
+stress_test_output*.txt
+
+# Archivos de depuración y temporales en la raíz
+debug_*.txt
+debug_*.json
+test_*.txt
+test_result.txt
+temp_debug*.txt
+diagnostic-output.txt
+check-result.txt
+dynamodb-check-output.txt
+plan.txt
+cookies.txt
+
+# Carpetas de herramientas de IA
+.claude/
+.agent/
+.agents/
+
+# Baileys WhatsApp Sessions (credentials - NEVER push)
+baileys_auth/
+baileys_auth_backup*/
+
+# Frontend build, env & dependencies
+frontend/.env
+frontend/dist/
+frontend/node_modules/
+
+# Test outputs (hyphenated names not covered by test_*.txt)
+test-output*.txt
+test-result.txt
+
+# Scripts debug/test outputs
+scripts/*.txt
+scripts/*.log
+
+# Misc local files
+lsa

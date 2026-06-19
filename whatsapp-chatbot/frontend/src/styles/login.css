@@ -1,0 +1,116 @@
+/* ============================================
+   LOGIN PAGE CSS
+   Uses same CSS variables from global.css
+   ============================================ */
+
+.login-overlay {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sidebar-bg);
+  padding: 20px;
+}
+
+.login-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.login-logo h2 {
+  color: var(--primary-green);
+  font-size: 1.5em;
+  margin: 0;
+}
+.login-logo p {
+  color: var(--text-muted);
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.login-form-group {
+  margin-bottom: 20px;
+}
+.login-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.login-form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: inherit;
+  transition: var(--transition);
+  box-sizing: border-box;
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+.login-form-group input:focus {
+  outline: none;
+  border-color: var(--primary-green-light);
+  box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.15);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--primary-green-light), var(--primary-green));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.login-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(7, 94, 84, 0.3);
+}
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-error {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Dark mode — inherits from global.css variables */
+body.dark-mode .login-card {
+  background: var(--card-bg);
+}
+body.dark-mode .login-logo h2 {
+  color: var(--accent-green);
+}
+body.dark-mode .login-form-group label {
+  color: var(--text-primary);
+}
+body.dark-mode .login-form-group input {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}

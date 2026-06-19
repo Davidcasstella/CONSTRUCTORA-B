@@ -1,0 +1,67 @@
+{
+  "welcome": {
+    "enabled": true,
+    "messages": [
+      {
+        "id": "w1",
+        "order": 1,
+        "type": "text",
+        "content": "",
+        "delay": 5,
+        "mediaUrl": null,
+        "mediaType": null,
+        "useGreeting": true,
+        "includeUserName": true,
+        "enabled": true,
+        "variants": [
+          {
+            "id": "v1",
+            "content": "¡Hola! Soy el asistente virtual. ¿En qué puedo ayudarle?",
+            "enabled": true
+          }
+        ]
+      }
+    ]
+  },
+  "consent": {
+    "enabled": false,
+    "message": "",
+    "delay": 5,
+    "waitForResponse": false,
+    "messages": []
+  },
+  "closure": {
+    "enabled": true,
+    "messages": [
+      {
+        "id": "c1",
+        "type": "auto_close",
+        "label": "Cierre automático",
+        "content": "Gracias por contactarnos. Si necesita algo más, no dude en escribirnos.",
+        "delay": 3,
+        "enabled": true
+      },
+      {
+        "id": "c2",
+        "type": "transfer_human",
+        "label": "Transferencia a asesor",
+        "content": "De acuerdo. Permítame un momento, lo comunico con un asesor.",
+        "delay": 3,
+        "enabled": true
+      },
+      {
+        "id": "c3",
+        "type": "followup",
+        "label": "Seguimiento",
+        "content": "¿Necesita algo más? Estamos para servirle.",
+        "delay": 3,
+        "enabled": true
+      }
+    ]
+  },
+  "advanced": {
+    "sendOnlyOnce": true,
+    "respectSchedule": true,
+    "globalSpeedMultiplier": 1
+  }
+}

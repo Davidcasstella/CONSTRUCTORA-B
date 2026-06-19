@@ -1,0 +1,468 @@
+/**
+ * ===========================================
+ * CORRECCIONES URGENTES DE VISUALIZACIÓN
+ * ===========================================
+ *
+ * PROBLEMA 1: Tarjetas con texto invisible en Control de Números
+ * PROBLEMA 2: Chat no se ve como WhatsApp
+ *
+ * Archivo: urgent-visual-fixes.css
+ * Fecha: 2026-02-08
+ */
+
+/* ===========================================
+   PROBLEMA 1: CORREGIR CONTRASTE EN TARJETAS
+   =========================================== */
+
+/* Tarjetas con fondo rosado (IA Desactivada) */
+.stat-card[style*="ffebee"],
+.stat-card[style*="ffcdd2"],
+div[style*="ffebee"],
+div[style*="ffcdd2"] {
+  /* Forzar texto oscuro para contraste */
+  color: #1a1a1a !important;
+}
+
+.stat-card[style*="ffebee"] .stat-number,
+.stat-card[style*="ffcdd2"] .stat-number,
+div[style*="ffebee"] .stat-number,
+div[style*="ffcdd2"] .stat-number {
+  color: #c62828 !important; /* Rojo oscuro para números */
+}
+
+.stat-card[style*="ffebee"] .stat-label,
+.stat-card[style*="ffcdd2"] .stat-label,
+div[style*="ffebee"] .stat-label,
+div[style*="ffcdd2"] .stat-label {
+  color: #5d1010 !important; /* Rojo muy oscuro para labels */
+}
+
+/* Tarjetas con fondo verde (IA Activa) */
+.stat-card[style*="e8f5e9"],
+.stat-card[style*="c8e6c9"],
+div[style*="e8f5e9"],
+div[style*="c8e6c9"] {
+  color: #1a1a1a !important;
+}
+
+.stat-card[style*="e8f5e9"] .stat-number,
+.stat-card[style*="c8e6c9"] .stat-number,
+div[style*="e8f5e9"] .stat-number,
+div[style*="c8e6c9"] .stat-number {
+  color: #2e7d32 !important; /* Verde oscuro para números */
+}
+
+.stat-card[style*="e8f5e9"] .stat-label,
+.stat-card[style*="c8e6c9"] .stat-label,
+div[style*="e8f5e9"] .stat-label,
+div[style*="c8e6c9"] .stat-label {
+  color: #1b5e20 !important; /* Verde muy oscuro para labels */
+}
+
+/* Tarjetas por defecto (blancas) */
+.stat-card:not([style*="gradient"]),
+.stat-card[style="background: white"],
+.stat-card[style="background: #fff"] {
+  color: #1a1a1a !important;
+}
+
+.stat-card:not([style*="gradient"]) .stat-number,
+.stat-card[style="background: white"] .stat-number,
+.stat-card[style="background: #fff"] .stat-number {
+  color: var(--primary-green, #128C7E) !important;
+}
+
+.stat-card:not([style*="gradient"]) .stat-label,
+.stat-card[style="background: white"] .stat-label,
+.stat-card[style="background: #fff"] .stat-label {
+  color: #666666 !important;
+}
+
+/* ===========================================
+   MODO OSCURO: Ajustes para tarjetas de colores
+   =========================================== */
+
+[data-theme="dark"] .stat-card[style*="ffebee"],
+[data-theme="dark"] .stat-card[style*="ffcdd2"],
+[data-theme="dark"] div[style*="ffebee"],
+[data-theme="dark"] div[style*="ffcdd2"] {
+  /* Fondo rosado oscurecido */
+  background: linear-gradient(135deg, #5d2a2a 0%, #7a3d3d 100%) !important;
+  color: #ffcdd2 !important;
+}
+
+[data-theme="dark"] .stat-card[style*="ffebee"] .stat-number,
+[data-theme="dark"] .stat-card[style*="ffcdd2"] .stat-number,
+[data-theme="dark"] div[style*="ffebee"] .stat-number,
+[data-theme="dark"] div[style*="ffcdd2"] .stat-number {
+  color: #ff8a80 !important;
+}
+
+[data-theme="dark"] .stat-card[style*="ffebee"] .stat-label,
+[data-theme="dark"] .stat-card[style*="ffcdd2"] .stat-label,
+[data-theme="dark"] div[style*="ffebee"] .stat-label,
+[data-theme="dark"] div[style*="ffcdd2"] .stat-label {
+  color: #ffebee !important;
+}
+
+[data-theme="dark"] .stat-card[style*="e8f5e9"],
+[data-theme="dark"] .stat-card[style*="c8e6c9"],
+[data-theme="dark"] div[style*="e8f5e9"],
+[data-theme="dark"] div[style*="c8e6c9"] {
+  /* Fondo verde oscurecido */
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%) !important;
+  color: #c8e6c9 !important;
+}
+
+[data-theme="dark"] .stat-card[style*="e8f5e9"] .stat-number,
+[data-theme="dark"] .stat-card[style*="c8e6c9"] .stat-number,
+[data-theme="dark"] div[style*="e8f5e9"] .stat-number,
+[data-theme="dark"] div[style*="c8e6c9"] .stat-number {
+  color: #69f0ae !important;
+}
+
+[data-theme="dark"] .stat-card[style*="e8f5e9"] .stat-label,
+[data-theme="dark"] .stat-card[style*="c8e6c9"] .stat-label,
+[data-theme="dark"] div[style*="e8f5e9"] .stat-label,
+[data-theme="dark"] div[style*="c8e6c9"] .stat-label {
+  color: #e8f5e9 !important;
+}
+
+/* ===========================================
+   PROBLEMA 2: CHAT ESTILO WHATSAPP
+   =========================================== */
+
+/* Fondo del contenedor del chat */
+.chat-modal-body,
+.chat-modal-content,
+#chat-modal-body,
+[role="dialog"][class*="chat"] {
+  background-color: #0b141a !important;
+}
+
+/* ===========================================
+   BURBUJAS DE MENSAJES - ESTILO WHATSAPP
+   =========================================== */
+
+/* Mensaje del USUARIO (izquierda) - recibido */
+.chat-message.user .message-bubble,
+.message-bubble.received,
+.chat-message.user [class*="bubble"] {
+  background: #202c33 !important; /* Gris oscuro WhatsApp */
+  color: #e9edef !important; /* Texto claro */
+  border: none !important;
+  border-radius: 9px 9px 9px 4px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Mensaje del ADMIN/ASESOR (derecha) - enviado */
+.chat-message.admin .message-bubble,
+.message-bubble.sent,
+.chat-message.admin [class*="bubble"] {
+  background: #005c4b !important; /* Verde WhatsApp */
+  color: #e9edef !important; /* Texto claro */
+  border: none !important;
+  border-radius: 9px 9px 4px 9px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Mensaje del BOT (derecha) - enviado */
+.chat-message.bot .message-bubble,
+.chat-message.bot [class*="bubble"] {
+  background: #005c4b !important; /* Verde WhatsApp - igual que admin */
+  color: #e9edef !important; /* Texto claro */
+  border: none !important;
+  border-radius: 9px 9px 4px 9px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Hover en burbujas */
+.chat-message.user .message-bubble:hover,
+.message-bubble.received:hover {
+  background: #2a3942 !important;
+}
+
+.chat-message.admin .message-bubble:hover,
+.chat-message.bot .message-bubble:hover,
+.message-bubble.sent:hover {
+  background: #064e42 !important;
+}
+
+/* Texto dentro de las burbujas */
+.message-bubble .message-text,
+.chat-message .message-text,
+.message-bubble p,
+.message-bubble span {
+  color: inherit !important;
+}
+
+/* Sender labels (nombres sobre las burbujas) */
+.message-sender,
+.chat-message .message-sender {
+  color: #8696a0 !important; /* Gris claro WhatsApp */
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  margin-bottom: 2px !important;
+}
+
+/* Colores específicos para sender types */
+.chat-message.admin .message-sender,
+.chat-message.bot .message-sender {
+  color: #00a884 !important; /* Verde acento para admins/bot */
+}
+
+/* Timestamp (hora del mensaje) */
+.message-time,
+.chat-message .message-time,
+.message-bubble .message-time {
+  color: #8696a0 !important; /* Gris claro */
+  font-size: 10px !important;
+  margin-top: 4px !important;
+  text-align: right !important;
+}
+
+/* ===========================================
+   AJUSTES PARA EL CHAT MODAL
+   =========================================== */
+
+/* Header del chat */
+.chat-modal-header,
+.modal-header[class*="chat"] {
+  background: #202c33 !important;
+  border-bottom: 1px solid #2a3942 !important;
+  color: #e9edef !important;
+}
+
+.chat-modal-header h3,
+.chat-modal-header .phone-number,
+.modal-header[class*="chat"] h3 {
+  color: #e9edef !important;
+}
+
+/* Footer/input area del chat */
+.chat-modal-footer,
+.modal-footer[class*="chat"] {
+  background: #202c33 !important;
+  border-top: 1px solid #2a3942 !important;
+}
+
+/* Input de mensaje */
+.chat-message-input,
+input[class*="chat-input"],
+textarea[class*="chat-input"] {
+  background: #111b21 !important;
+  border: 1px solid #2a3942 !important;
+  color: #e9edef !important;
+}
+
+.chat-message-input::placeholder,
+input[class*="chat-input"]::placeholder,
+textarea[class*="chat-input"]::placeholder {
+  color: #8696a0 !important;
+}
+
+.chat-message-input:focus,
+input[class*="chat-input"]:focus,
+textarea[class*="chat-input"]:focus {
+  border-color: #00a884 !important;
+  outline: none !important;
+}
+
+/* Botón enviar */
+.chat-send-btn,
+button[class*="chat-send"],
+button[class*="send-message"] {
+  background: #00a884 !important;
+  color: #e9edef !important;
+  border: none !important;
+}
+
+.chat-send-btn:hover,
+button[class*="chat-send"]:hover,
+button[class*="send-message"]:hover {
+  background: #008f6f !important;
+}
+
+/* ===========================================
+   MODO CLARO: Versión clara del chat
+   =========================================== */
+
+/* Solo si NO estamos en modo oscuro */
+html:not([data-theme="dark"]) .chat-modal-body,
+html:not([data-theme="dark"]) .chat-modal-content {
+  background-color: #efeae2 !important; /* Fondo beige claro WhatsApp */
+}
+
+html:not([data-theme="dark"]) .chat-message.user .message-bubble,
+html:not([data-theme="dark"]) .message-bubble.received {
+  background: #ffffff !important; /* Blanco para usuario */
+  color: #111b21 !important; /* Texto oscuro */
+  border: none !important;
+}
+
+html:not([data-theme="dark"]) .chat-message.admin .message-bubble,
+html:not([data-theme="dark"]) .chat-message.bot .message-bubble,
+html:not([data-theme="dark"]) .message-bubble.sent {
+  background: #d9fdd3 !important; /* Verde claro WhatsApp */
+  color: #111b21 !important; /* Texto oscuro */
+  border: none !important;
+}
+
+html:not([data-theme="dark"]) .chat-modal-header {
+  background: #f0f2f5 !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  color: #111b21 !important;
+}
+
+html:not([data-theme="dark"]) .chat-modal-footer {
+  background: #f0f2f5 !important;
+  border-top: 1px solid #e0e0e0 !important;
+}
+
+html:not([data-theme="dark"]) .chat-message-input {
+  background: #ffffff !important;
+  border: 1px solid #e0e0e0 !important;
+  color: #111b21 !important;
+}
+
+/* ===========================================
+   OTROS AJUSTES VISUALES
+   =========================================== */
+
+/* Scrollbar del chat */
+.chat-modal-body::-webkit-scrollbar,
+.modal-body[class*="chat"]::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.chat-modal-body::-webkit-scrollbar-track,
+.modal-body[class*="chat"]::-webkit-scrollbar-track {
+  background: #0b141a !important;
+}
+
+.chat-modal-body::-webkit-scrollbar-thumb,
+.modal-body[class*="chat"]::-webkit-scrollbar-thumb {
+  background: #2a3942 !important;
+  border-radius: 3px !important;
+}
+
+.chat-modal-body::-webkit-scrollbar-thumb:hover,
+.modal-body[class*="chat"]::-webkit-scrollbar-thumb:hover {
+  background: #3a4a52 !important;
+}
+
+/* Loading spinner en chat */
+.chat-modal .loading-spinner,
+.modal[class*="chat"] .loading-spinner {
+  border-color: #2a3942 !important;
+  border-top-color: #00a884 !important;
+}
+
+/* ===========================================
+   RESPONSIVE - MÓVIL
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Burbujas más pequeñas en móvil */
+  .message-bubble {
+    max-width: 85% !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+
+  /* Chat modal en móvil */
+  .chat-modal {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  .chat-modal-content {
+    border-radius: 0 !important;
+  }
+}
+
+/* ===========================================
+   CORRECCIÓN PARA TABS DE CONTROL DE NÚMEROS
+   =========================================== */
+
+/* Asegurar que el texto de los tabs sea visible */
+#nc-tabs button,
+#nc-tabs .tab {
+  color: #2C2C2C !important;
+}
+
+#nc-tabs button.active,
+#nc-tabs .tab.active {
+  color: var(--primary-green, #128C7E) !important;
+  background: rgba(18, 140, 126, 0.1) !important;
+}
+
+/* Tabs en modo oscuro */
+[data-theme="dark"] #nc-tabs button,
+[data-theme="dark"] #nc-tabs .tab {
+  color: #e9edef !important;
+  background: var(--dark-bg-tertiary, #202c33) !important;
+}
+
+[data-theme="dark"] #nc-tabs button:hover,
+[data-theme="dark"] #nc-tabs .tab:hover {
+  background: var(--dark-bg-elevated, #1c2b33) !important;
+}
+
+[data-theme="dark"] #nc-tabs button.active,
+[data-theme="dark"] #nc-tabs .tab.active {
+  color: #00a884 !important;
+  background: rgba(0, 168, 132, 0.2) !important;
+}
+
+/* ===========================================
+   CORRECCIÓN PARA INFORMACIÓN IMPORTANTE
+   =========================================== */
+
+/* Info boxes en Control de Números */
+div[style*="background: #fff3e0"][style*="ff9800"],
+div[style*="background: #fce4ec"][style*="e53935"] {
+  color: #1a1a1a !important;
+}
+
+div[style*="background: #fff3e0"][style*="ff9800"] strong,
+div[style*="background: #fce4ec"][style*="e53935"] strong {
+  color: #1a1a1a !important;
+}
+
+div[style*="background: #fff3e0"][style*="ff9800"] ul,
+div[style*="background: #fce4ec"][style*="e53935"] ul {
+  color: #2C2C2C !important;
+}
+
+div[style*="background: #fff3e0"][style*="ff9800"] ul li,
+div[style*="background: #fce4ec"][style*="e53935"] ul li {
+  color: #2C2C2C !important;
+}
+
+/* Info boxes en modo oscuro */
+[data-theme="dark"] div[style*="background: #fff3e0"][style*="ff9800"] {
+  background: #3d2d1d !important;
+  border-left-color: #ff9800 !important;
+  color: #ffe0b2 !important;
+}
+
+[data-theme="dark"] div[style*="background: #fce4ec"][style*="e53935"] {
+  background: #4a1d2d !important;
+  border-left-color: #e53935 !important;
+  color: #ffcccb !important;
+}
+
+[data-theme="dark"] div[style*="background: #fff3e0"][style*="ff9800"] strong,
+[data-theme="dark"] div[style*="background: #fce4ec"][style*="e53935"] strong {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] div[style*="background: #fff3e0"][style*="ff9800"] ul,
+[data-theme="dark"] div[style*="background: #fce4ec"][style*="e53935"] ul,
+[data-theme="dark"] div[style*="background: #fff3e0"][style*="ff9800"] ul li,
+[data-theme="dark"] div[style*="background: #fce4ec"][style*="e53935"] ul li {
+  color: #e9edef !important;
+}

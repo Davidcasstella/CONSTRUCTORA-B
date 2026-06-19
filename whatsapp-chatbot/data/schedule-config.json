@@ -1,0 +1,26 @@
+{
+  "weekdays": {
+    "start": 8,
+    "endHour": 16,
+    "endMinute": 30,
+    "days": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "saturday": {
+    "start": 9,
+    "endHour": 12,
+    "endMinute": 0,
+    "enabled": true
+  },
+  "sunday": {
+    "enabled": false
+  },
+  "timezone": "America/Bogota",
+  "scheduleCheckEnabled": false,
+  "holidayCheckEnabled": true
+}

@@ -1,0 +1,76 @@
+/* Dashboard Base — Reset, variables, global styles */
+/* Extracted from dashboard.css */
+
+/* ========================================
+       PARTE 1: RESET Y VARIABLES
+       ======================================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-green: #075E54;
+      --secondary-green: #128C7E;
+      --light-green: #25D366;
+      --whatsapp-green: #DCF8C6;
+      --dark-gray: #2C2C2C;
+      --medium-gray: #666;
+      --light-gray: #F5F5F5;
+      --border-gray: #E0E0E0;
+      --white: #FFFFFF;
+      --sidebar-width: 194px;
+      /* Reducido 12% adicional: 220px → 194px */
+      --header-height: 53px;
+      /* Reducido 12% adicional: 60px → 53px */
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+      --base-font-size: 12px;
+      /* Reducido 12%: 14px → 12px */
+    }
+
+    /* ========================================
+       PARTE 2: LAYOUT PRINCIPAL DEL DASHBOARD
+       ======================================== */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: var(--base-font-size);
+      /* Tamaño base reducido */
+      background: var(--light-gray);
+      min-height: 100vh;
+      overflow-x: hidden;
+      /* Prevenir pull-to-refresh en móviles */
+      overscroll-behavior-y: none;
+      /* Mejorar renderizado de texto en móviles */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Prevenir overflow horizontal en todos los elementos */
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Mejoras para触摸 en dispositivos móviles */
+    * {
+      /* Prevenir zoom en tap en iOS */
+      touch-action: manipulation;
+    }
+
+    /* Responsive para imágenes y videos */
+    img,
+    video,
+    iframe {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Dashboard Container */
+    .dashboard-wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+

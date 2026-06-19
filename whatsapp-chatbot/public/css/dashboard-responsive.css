@@ -1,0 +1,913 @@
+/* Dashboard Responsive — All media queries consolidated */
+/* Extracted from dashboard.css */
+
+/* HEADER RESPONSIVE */
+    /* ========================================
+       HEADER RESPONSIVE - MÓVIL
+       ======================================== */
+    /* Tablet pequeña y móvil grande (max 600px) */
+    @media (max-width: 600px) {
+      .dashboard-header {
+        padding: 0 10px;
+        height: 48px;
+        flex-wrap: nowrap;
+      }
+
+      .header-left {
+        gap: 6px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .header-title {
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .header-subtitle {
+        display: none;
+      }
+
+      .header-right {
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .dashboard-clock {
+        padding: 4px 8px;
+        font-size: 10px;
+        gap: 3px;
+        border-radius: 12px;
+      }
+
+      .dashboard-clock .clock-icon {
+        font-size: 11px;
+      }
+
+      .dashboard-clock .clock-seconds {
+        font-size: 8px;
+      }
+
+      .header-status-badge {
+        padding: 4px 8px;
+        font-size: 9px;
+        gap: 4px;
+        border-radius: 12px;
+      }
+
+      .status-dot {
+        width: 5px;
+        height: 5px;
+      }
+
+      .header-upload-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+        gap: 5px;
+      }
+    }
+
+    /* Móvil muy pequeño (max 375px) */
+    @media (max-width: 375px) {
+      .dashboard-header {
+        padding: 0 8px;
+        height: 44px;
+      }
+
+      .header-left {
+        gap: 4px;
+      }
+
+      .header-title {
+        font-size: 12px;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .dashboard-clock {
+        padding: 3px 6px;
+        font-size: 9px;
+        gap: 2px;
+      }
+
+      .dashboard-clock .clock-icon {
+        font-size: 9px;
+      }
+
+      .dashboard-clock .clock-time {
+        font-size: 9px;
+      }
+
+      .dashboard-clock .clock-seconds {
+        display: none;
+      }
+
+      .header-status-badge {
+        padding: 3px 6px;
+        font-size: 8px;
+        gap: 3px;
+      }
+
+      .header-status-badge span:not(.status-dot) {
+        display: none;
+      }
+
+      .header-status-badge .status-dot {
+        width: 8px;
+        height: 8px;
+      }
+
+      .header-upload-btn {
+        padding: 4px 8px;
+        font-size: 9px;
+        gap: 3px;
+      }
+
+      .header-upload-btn span:not(:first-child) {
+        display: none;
+      }
+    }
+
+    /* Mini móviles (max 320px) */
+    @media (max-width: 320px) {
+      .dashboard-header {
+        height: 40px;
+        padding: 0 6px;
+      }
+
+      .header-title {
+        font-size: 11px;
+        max-width: 80px;
+      }
+
+      .dashboard-clock {
+        font-size: 8px;
+        padding: 2px 5px;
+      }
+
+      .dashboard-clock .clock-icon {
+        font-size: 8px;
+      }
+
+      .header-upload-btn {
+        padding: 3px 6px;
+        font-size: 8px;
+      }
+    }
+
+    /* Responsive para controles de horario y festivos en móvil */
+    @media (max-width: 768px) {
+
+      /* Los controles de horario y festivos se apilan verticalmente */
+      div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+
+/* GENERAL RESPONSIVE DESIGN */
+    /* ========================================
+       RESPONSIVE DESIGN
+       ======================================== */
+    @media (max-width: 1024px) {
+      :root {
+        --sidebar-width: 80px;
+      }
+
+      .sidebar-logo-text,
+      .sidebar-logo-subtitle,
+      .nav-item-text,
+      .nav-section-title {
+        display: none;
+      }
+
+      .nav-item {
+        justify-content: center;
+        padding: 15px 10px;
+      }
+
+      .nav-item-icon {
+        margin-right: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+      .dashboard-content {
+        padding: 20px;
+      }
+
+      .content-card {
+        padding: 25px;
+      }
+    }
+
+    /* Móvil pequeño (max 480px) */
+    @media (max-width: 480px) {
+      .dashboard-content {
+        padding: 8px;
+      }
+
+      .content-card {
+        padding: 12px;
+        border-radius: 12px;
+      }
+
+      .content-card h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+
+      /* Botón hamburguesa móvil */
+      .mobile-menu-btn {
+        display: block;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+        border-radius: 50%;
+        box-shadow: 0 4px 20px rgba(7, 94, 84, 0.4);
+        z-index: 9999;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .mobile-menu-btn:hover {
+        transform: scale(1.1);
+      }
+
+      /* Overlay cuando el sidebar está abierto en móvil */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9998;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* Mejorar área táctil de botones en móvil */
+      button,
+      .btn,
+      a {
+        min-height: 44px;
+        /* Tamaño mínimo recomendado por Apple */
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Excepciones para elementos pequeños */
+      .emoji-picker-item,
+      .status-dot,
+      .bot-status-dot {
+        min-height: auto;
+        min-width: auto;
+      }
+
+      /* Inputs más grandes en móvil para facilitar entrada */
+      input,
+      textarea,
+      select {
+        min-height: 44px;
+        font-size: 16px;
+        /* Prevenir zoom en iOS */
+      }
+
+      /* Excepción para textarea que puede crecer */
+      textarea {
+        min-height: 44px;
+        max-height: 120px;
+      }
+    }
+
+    /* Móvil pequeño (max 375px) */
+    @media (max-width: 375px) {
+      .dashboard-content {
+        padding: 10px;
+      }
+
+      .content-card {
+        padding: 12px;
+        border-radius: 10px;
+      }
+
+      .content-card h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+
+      .breadcrumb {
+        font-size: 10px;
+        margin-bottom: 12px;
+      }
+
+      /* Ajustar botón de menú móvil */
+      .mobile-menu-btn {
+        width: 50px;
+        height: 50px;
+        bottom: 15px;
+        right: 15px;
+        font-size: 20px;
+      }
+
+      /* Sidebar más angosto en móviles pequeños */
+      .sidebar {
+        width: 260px;
+      }
+
+      .nav-item {
+        padding: 12px 15px;
+      }
+
+      .nav-item-icon {
+        font-size: 18px;
+      }
+    }
+
+    /* Mini móvil (max 320px) */
+    @media (max-width: 320px) {
+      .dashboard-content {
+        padding: 8px;
+      }
+
+      .content-card {
+        padding: 10px;
+        border-radius: 8px;
+      }
+
+      .content-card h2 {
+        font-size: 15px;
+        margin-bottom: 10px;
+      }
+
+      .breadcrumb {
+        font-size: 9px;
+        margin-bottom: 10px;
+      }
+
+      .mobile-menu-btn {
+        width: 45px;
+        height: 45px;
+        bottom: 12px;
+        right: 12px;
+        font-size: 18px;
+      }
+
+      .sidebar {
+        width: 240px;
+      }
+
+      .sidebar-header {
+        padding: 15px 10px;
+      }
+
+      .sidebar-logo {
+        font-size: 18px;
+      }
+
+      .sidebar-logo-subtitle {
+        font-size: 8px;
+      }
+
+      .nav-item {
+        padding: 10px 12px;
+      }
+
+      .nav-item-text {
+        font-size: 11px;
+      }
+
+      .nav-item-icon {
+        font-size: 16px;
+      }
+    }
+
+
+/* CHAT MODAL RESPONSIVE */
+    /* ========================================
+       CHAT MODAL - RESPONSIVE
+       ======================================== */
+
+    /* Tablet (max 768px) */
+    @media (max-width: 768px) {
+      .chat-modal-content {
+        width: 95%;
+        max-height: 90vh;
+      }
+
+      .chat-modal-header {
+        padding: 15px 20px;
+      }
+
+      .chat-modal-header h3 {
+        font-size: 16px;
+      }
+
+      .chat-modal-header .phone-number {
+        font-size: 13px;
+      }
+
+      .chat-modal-body {
+        padding: 15px;
+        min-height: 400px;
+        max-height: calc(90vh - 180px);
+      }
+
+      .chat-modal-footer {
+        padding: 12px 15px;
+      }
+
+      .chat-message-input {
+        font-size: 14px;
+        padding: 10px 14px;
+      }
+
+      .chat-send-btn {
+        padding: 10px 20px;
+        font-size: 13px;
+        min-width: 70px;
+      }
+
+      .chat-action-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .emoji-picker-btn {
+        padding: 10px 14px;
+        font-size: 18px;
+      }
+
+      .emoji-picker-panel {
+        min-width: 260px;
+      }
+
+      .emoji-picker-item {
+        width: 26px;
+        height: 26px;
+        font-size: 16px;
+      }
+    }
+
+    /* Móvil (max 480px) */
+    @media (max-width: 480px) {
+      .chat-modal-content {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+
+      .chat-modal-header {
+        padding: 12px 15px;
+        border-radius: 0;
+      }
+
+      .chat-modal-header h3 {
+        font-size: 15px;
+      }
+
+      .chat-modal-header .phone-number {
+        font-size: 12px;
+      }
+
+      .chat-modal-close {
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+      }
+
+      .chat-modal-body {
+        padding: 12px;
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .chat-message {
+        margin-bottom: 10px;
+      }
+
+      .message-bubble {
+        max-width: 85%;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+
+      .message-sender {
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+
+      .message-time {
+        font-size: 10px;
+      }
+
+      .chat-modal-footer {
+        padding: 10px 12px;
+        border-radius: 0;
+      }
+
+      .chat-input-container {
+        gap: 8px;
+      }
+
+      .chat-message-input {
+        font-size: 14px;
+        padding: 8px 12px;
+        min-height: 40px;
+        max-height: 100px;
+      }
+
+      .chat-send-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        min-width: 60px;
+      }
+
+      .chat-actions {
+        padding: 10px 12px;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .chat-action-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
+      }
+
+      .emoji-picker-btn {
+        padding: 8px 10px;
+        font-size: 16px;
+        min-width: 34px;
+      }
+
+      .emoji-picker-panel {
+        min-width: 240px;
+        bottom: 55px;
+      }
+
+      .emoji-picker-grid {
+        grid-template-columns: repeat(8, 1fr);
+        gap: 3px;
+      }
+
+      .emoji-picker-item {
+        width: 24px;
+        height: 24px;
+        font-size: 15px;
+      }
+
+      .emoji-picker-section-title {
+        font-size: 9px;
+      }
+    }
+
+    /* Móvil pequeño (max 375px) */
+    @media (max-width: 375px) {
+      .chat-modal-header {
+        padding: 10px 12px;
+      }
+
+      .chat-modal-header h3 {
+        font-size: 14px;
+      }
+
+      .chat-modal-header .phone-number {
+        font-size: 11px;
+      }
+
+      .chat-modal-close {
+        width: 28px;
+        height: 28px;
+        font-size: 18px;
+      }
+
+      .chat-modal-body {
+        padding: 10px;
+      }
+
+      .message-bubble {
+        max-width: 90%;
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      .message-sender {
+        font-size: 10px;
+      }
+
+      .message-time {
+        font-size: 9px;
+      }
+
+      .chat-modal-footer {
+        padding: 8px 10px;
+      }
+
+      .chat-input-container {
+        gap: 6px;
+      }
+
+      .chat-message-input {
+        font-size: 13px;
+        padding: 7px 10px;
+        min-height: 36px;
+      }
+
+      .chat-send-btn {
+        padding: 7px 12px;
+        font-size: 12px;
+        min-width: 50px;
+      }
+
+      .emoji-picker-btn {
+        padding: 7px 8px;
+        font-size: 14px;
+        min-width: 30px;
+      }
+
+      .emoji-picker-panel {
+        min-width: 200px;
+        bottom: 50px;
+        padding: 8px;
+      }
+
+      .emoji-picker-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2px;
+      }
+
+      .emoji-picker-item {
+        width: 22px;
+        height: 22px;
+        font-size: 14px;
+      }
+
+      .emoji-picker-section-title {
+        font-size: 8px;
+        margin-bottom: 4px;
+      }
+
+      .chat-actions {
+        padding: 8px 10px;
+      }
+
+      .chat-action-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+        min-width: 60px;
+      }
+
+      .bot-status-indicator {
+        padding: 3px 8px;
+        font-size: 10px;
+        gap: 4px;
+      }
+
+      .bot-status-dot {
+        width: 6px;
+        height: 6px;
+      }
+    }
+
+    /* Mini móvil (max 320px) */
+    @media (max-width: 320px) {
+      .chat-modal-header {
+        padding: 8px 10px;
+      }
+
+      .chat-modal-header h3 {
+        font-size: 13px;
+      }
+
+      .chat-modal-header .phone-number {
+        font-size: 10px;
+      }
+
+      .chat-modal-header .header-content {
+        gap: 8px;
+      }
+
+      .chat-modal-body {
+        padding: 8px;
+      }
+
+      .message-bubble {
+        max-width: 95%;
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+
+      .chat-message-input {
+        font-size: 12px;
+        padding: 6px 8px;
+        min-height: 34px;
+      }
+
+      .chat-send-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        min-width: 45px;
+      }
+
+      .emoji-picker-btn {
+        padding: 6px 7px;
+        font-size: 13px;
+        min-width: 28px;
+      }
+
+      .emoji-picker-panel {
+        min-width: 180px;
+        padding: 6px;
+      }
+
+      .emoji-picker-item {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+      }
+
+      .emoji-picker-section-title {
+        display: none;
+      }
+
+      .chat-actions {
+        padding: 6px 8px;
+        gap: 4px;
+      }
+
+      .chat-action-btn {
+        padding: 4px 6px;
+        font-size: 9px;
+        min-width: 50px;
+      }
+    }
+
+
+/* ESTADÍSTICAS RESPONSIVE */
+    /* ===========================================
+       ESTADÍSTICAS - DISEÑO RESPONSIVE
+       =========================================== */
+    .stats-cards {
+      display: grid;
+      /* Escritorio: 6 columnas iguales (Total, Activas, Expiradas, Aceptaron, Pendientes, Con asesor) */
+      grid-template-columns: repeat(6, 1fr);
+      gap: 11px;
+      /* Reducido 12%: 12px → 11px */
+      margin-bottom: 19px;
+      /* Reducido 12%: 22px → 19px */
+    }
+
+    /* Tablet (max 1024px): 3 columnas */
+    @media (max-width: 1024px) {
+      .stats-cards {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+        /* Reducido 12%: 10px → 9px */
+      }
+    }
+
+    /* Tablet pequeña (max 768px): 2 columnas */
+    @media (max-width: 768px) {
+      .stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 7px;
+        /* Reducido 12%: 8px → 7px */
+      }
+    }
+
+    /* Móvil (max 480px): 1 columna */
+    @media (max-width: 480px) {
+      .stats-cards {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .stat-card {
+        padding: 8px;
+        min-height: 60px;
+      }
+
+      .stat-number {
+        font-size: 20px;
+      }
+
+      .stat-label {
+        font-size: 9px;
+      }
+    }
+
+    /* Móvil pequeño (max 375px) */
+    @media (max-width: 375px) {
+      .stats-cards {
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+
+      .stat-card {
+        padding: 6px;
+        min-height: 50px;
+        border-radius: 8px;
+      }
+
+      .stat-number {
+        font-size: 16px;
+        margin-bottom: 2px;
+      }
+
+      .stat-label {
+        font-size: 8px;
+        letter-spacing: 0.2px;
+      }
+    }
+
+    /* Mini móvil (max 320px) */
+    @media (max-width: 320px) {
+      .stats-cards {
+        gap: 3px;
+        margin-bottom: 6px;
+      }
+
+      .stat-card {
+        padding: 5px;
+        min-height: 45px;
+      }
+
+      .stat-number {
+        font-size: 14px;
+      }
+
+      .stat-label {
+        font-size: 7px;
+      }
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 9px;
+      /* Reducido 12%: 10px → 9px */
+      padding: 12px;
+      /* Reducido 12%: 14px → 12px */
+      box-shadow: var(--shadow);
+      text-align: center;
+      /* Asegurar que todas las tarjetas tengan la misma altura */
+      min-height: 84px;
+      /* Reducido 12%: 95px → 84px */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .stat-number {
+      font-size: 25px;
+      /* Reducido 12%: 28px → 25px */
+      font-weight: 700;
+      color: var(--primary-green);
+      margin-bottom: 3px;
+      /* Reducido 12%: 4px → 3px */
+    }
+
+    .stat-label {
+      font-size: 10px;
+      /* Reducido 12%: 11px → 10px */
+      color: var(--medium-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      /* Reducido 12%: 0.4px → 0.35px */
+    }
+

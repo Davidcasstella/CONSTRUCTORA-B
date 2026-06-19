@@ -1,0 +1,20 @@
+{
+    "watch": [
+        "server.js",
+        "src/"
+    ],
+    "ext": "js,json",
+    "ignore": [
+        "public/",
+        "node_modules/",
+        "baileys_auth/",
+        "knowledge_files/",
+        "logs/",
+        "uploads/",
+        "tests/",
+        "*.test.js",
+        "settings.json",
+        "PreguntasRespuestas.txt"
+    ],
+    "delay": "1500"
+}

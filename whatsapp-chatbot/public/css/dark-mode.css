@@ -1,0 +1,801 @@
+/**
+ * ===========================================
+ * MODO OSCURO - ESTILO WHATSAPP
+ * ===========================================
+ *
+ * Colores inspirados en WhatsApp Dark Mode
+ * Usa atributo data-theme="dark" en el elemento HTML
+ */
+
+/* ===========================================
+   VARIABLES CSS PARA MODO OSCURO
+   =========================================== */
+[data-theme="dark"] {
+  /* Colores principales - Fondo */
+  --dark-bg-primary: #0b141a;
+  --dark-bg-secondary: #111b21;
+  --dark-bg-tertiary: #202c33;
+  --dark-bg-elevated: #1c2b33;
+
+  /* Colores de acento */
+  --dark-accent: #00a884;
+  --dark-accent-hover: #008f6f;
+  --dark-accent-light: rgba(0, 168, 132, 0.1);
+
+  /* Colores de texto */
+  --dark-text-primary: #e9edef;
+  --dark-text-secondary: #8696a0;
+  --dark-text-tertiary: #667781;
+
+  /* Colores de burbujas de chat */
+  --dark-bubble-sent: #005c4b;
+  --dark-bubble-received: #202c33;
+  --dark-bubble-sent-hover: #064e42;
+  --dark-bubble-received-hover: #2a3942;
+
+  /* Colores de bordes y separadores */
+  --dark-border: #2a3942;
+  --dark-divider: #2f3b43;
+
+  /* Colores de estado */
+  --dark-success: #00a884;
+  --dark-warning: #ff9800;
+  --dark-error: #ef5350;
+  --dark-info: #2196f3;
+
+  /* Sombras */
+  --dark-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --dark-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --dark-shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.5);
+
+  /* Sobrescribir variables originales */
+  --light-gray: var(--dark-bg-primary);
+  --white: var(--dark-bg-secondary);
+  --dark-gray: var(--dark-text-primary);
+  --medium-gray: var(--dark-text-secondary);
+  --border-gray: var(--dark-border);
+  --shadow: var(--dark-shadow);
+  --shadow-lg: var(--dark-shadow-lg);
+}
+
+/* ===========================================
+   ESTILOS BASE PARA MODO OSCURO
+   =========================================== */
+
+/* Body y contenedores principales */
+[data-theme="dark"] body {
+  background: var(--dark-bg-primary);
+  color: var(--dark-text-primary);
+}
+
+/* ===========================================
+   SIDEBAR (BARRA LATERAL)
+   =========================================== */
+[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, #0c1317 0%, #111b21 100%);
+}
+
+[data-theme="dark"] .sidebar-logo {
+  border-bottom-color: var(--dark-border);
+}
+
+[data-theme="dark"] .sidebar-footer {
+  border-top-color: var(--dark-border);
+  color: var(--dark-text-secondary);
+}
+
+/* Navigation items */
+[data-theme="dark"] .nav-item {
+  color: var(--dark-text-secondary);
+}
+
+[data-theme="dark"] .nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .nav-item.active {
+  background: var(--dark-accent-light);
+  color: var(--dark-accent);
+  border-left-color: var(--dark-accent);
+}
+
+[data-theme="dark"] .nav-section-title {
+  color: var(--dark-text-tertiary);
+}
+
+/* ===========================================
+   HEADER (BARRA SUPERIOR)
+   =========================================== */
+[data-theme="dark"] .dashboard-header {
+  background: var(--dark-bg-secondary);
+  border-bottom: 1px solid var(--dark-border);
+}
+
+[data-theme="dark"] .header-title {
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .header-subtitle {
+  color: var(--dark-text-secondary);
+}
+
+/* Status badges */
+[data-theme="dark"] .header-status-badge {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-secondary);
+}
+
+[data-theme="dark"] .header-status-badge.connected {
+  background: rgba(0, 168, 132, 0.15);
+  color: var(--dark-success);
+}
+
+[data-theme="dark"] .header-status-badge.waiting {
+  background: rgba(255, 152, 0, 0.15);
+  color: var(--dark-warning);
+}
+
+[data-theme="dark"] .header-status-badge.disconnected {
+  background: rgba(239, 83, 80, 0.15);
+  color: var(--dark-error);
+}
+
+/* ===========================================
+   CONTENIDO PRINCIPAL
+   =========================================== */
+[data-theme="dark"] .main-content {
+  background: var(--dark-bg-primary);
+}
+
+[data-theme="dark"] .content-section {
+  background: var(--dark-bg-secondary);
+  border: 1px solid var(--dark-border);
+}
+
+[data-theme="dark"] .section-title {
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .section-description {
+  color: var(--dark-text-secondary);
+}
+
+/* ===========================================
+   TARJETAS Y CARDS
+   =========================================== */
+[data-theme="dark"] .stat-card {
+  background: var(--dark-bg-secondary);
+  border: 1px solid var(--dark-border);
+}
+
+[data-theme="dark"] .stat-number {
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .stat-label {
+  color: var(--dark-text-secondary);
+}
+
+/* Control cards */
+[data-theme="dark"] .control-card,
+[data-theme="dark"] div[style*="background: #f5f5f5"] {
+  background: var(--dark-bg-tertiary) !important;
+  border-color: var(--dark-border) !important;
+}
+
+/* Holiday control card - mantener color naranja específico */
+[data-theme="dark"] div[style*="background: #fff3e0"] {
+  background: #3d2d1d !important;
+  border-color: #5c4a35 !important;
+}
+
+/* ===========================================
+   TABLAS
+   =========================================== */
+[data-theme="dark"] .conversations-table {
+  background: var(--dark-bg-secondary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .conversations-table thead {
+  background: var(--dark-bg-tertiary);
+}
+
+[data-theme="dark"] .conversations-table th {
+  color: var(--dark-text-secondary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .conversations-table td {
+  color: var(--dark-text-primary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .conversations-table tbody tr:hover {
+  background: var(--dark-bg-elevated);
+}
+
+/* ===========================================
+   BOTONES
+   =========================================== */
+[data-theme="dark"] .upload-btn,
+[data-theme="dark"] button {
+  color: var(--dark-text-primary);
+}
+
+/* Botones primarios */
+[data-theme="dark"] .upload-btn[style*="4caf50"],
+[data-theme="dark"] .upload-btn[style*="2e7d32"],
+[data-theme="dark"] button[style*="4caf50"],
+[data-theme="dark"] button[style*="2e7d32"] {
+  filter: brightness(1.1);
+}
+
+/* Botones con gradiente verde */
+[data-theme="dark"] .dashboard-clock {
+  filter: brightness(1.1);
+}
+
+/* Botón de modo oscuro */
+.dark-mode-toggle {
+  background: var(--dark-bg-tertiary);
+  border: 1px solid var(--dark-border);
+  color: var(--dark-text-primary);
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.dark-mode-toggle:hover {
+  background: var(--dark-bg-elevated);
+  border-color: var(--dark-accent);
+}
+
+.dark-mode-toggle .toggle-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===========================================
+   FORMULARIOS E INPUTS
+   =========================================== */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--dark-text-tertiary);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--dark-accent);
+  outline: none;
+}
+
+/* ===========================================
+   MENSAJES DE CHAT
+   =========================================== */
+[data-theme="dark"] .message-sent {
+  background: var(--dark-bubble-sent);
+}
+
+[data-theme="dark"] .message-received {
+  background: var(--dark-bubble-received);
+}
+
+[data-theme="dark"] .message-sent:hover,
+[data-theme="dark"] .message-received:hover {
+  filter: brightness(1.1);
+}
+
+/* ===========================================
+   CALENDARIO DE FESTIVOS
+   =========================================== */
+[data-theme="dark"] .calendar-container {
+  background: var(--dark-bg-secondary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .month-card {
+  background: var(--dark-bg-tertiary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .calendar-day {
+  background: var(--dark-bg-elevated);
+  color: var(--dark-text-primary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .calendar-day.holiday {
+  background: var(--dark-bubble-sent);
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .calendar-day.today {
+  border-color: var(--dark-accent);
+}
+
+[data-theme="dark"] .calendar-day:hover {
+  background: var(--dark-bubble-received-hover);
+}
+
+[data-theme="dark"] .year-selector {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  border-color: var(--dark-border);
+}
+
+/* ===========================================
+   MODALES Y DIALOGOS
+   =========================================== */
+[data-theme="dark"] .modal,
+[data-theme="dark"] .dialog {
+  background: var(--dark-bg-secondary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .modal-header {
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .modal-title {
+  color: var(--dark-text-primary);
+}
+
+/* ===========================================
+   SCROLLBARS
+   =========================================== */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--dark-bg-primary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--dark-border);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-text-tertiary);
+}
+
+/* ===========================================
+   LOADING SPINNERS
+   =========================================== */
+[data-theme="dark"] .loading-spinner {
+  border-color: var(--dark-border);
+  border-top-color: var(--dark-accent);
+}
+
+/* ===========================================
+   TEXTOS Y PÁRRAFOS
+   =========================================== */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] div {
+  color: inherit;
+}
+
+/* Textos con color específico que necesitan ajuste */
+[data-theme="dark"] [style*="color: #2C2C2C"],
+[data-theme="dark"] [style*="color: #2c2c2c"] {
+  color: var(--dark-text-primary) !important;
+}
+
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color: #666666"] {
+  color: var(--dark-text-secondary) !important;
+}
+
+/* ===========================================
+   ENLACES
+   =========================================== */
+[data-theme="dark"] a {
+  color: var(--dark-accent);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--dark-accent-hover);
+}
+
+/* ===========================================
+   BADGES Y ETIQUETAS
+   =========================================== */
+[data-theme="dark"] .badge {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .badge-success {
+  background: rgba(0, 168, 132, 0.2);
+  color: var(--dark-success);
+}
+
+[data-theme="dark"] .badge-warning {
+  background: rgba(255, 152, 0, 0.2);
+  color: var(--dark-warning);
+}
+
+[data-theme="dark"] .badge-error {
+  background: rgba(239, 83, 80, 0.2);
+  color: var(--dark-error);
+}
+
+/* ===========================================
+   ANIMACIONES
+   =========================================== */
+@keyframes fadeInDark {
+  from {
+    opacity: 0;
+    background: var(--dark-bg-primary);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+[data-theme="dark"] .fade-in {
+  animation: fadeInDark 0.3s ease;
+}
+
+/* ===========================================
+   AJUSTES ESPECIALES PARA ELEMENTOS
+   CON ESTILOS INLINE
+   =========================================== */
+
+/* Elementos con background blanco inline */
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background: #FFF"],
+[data-theme="dark"] [style*="background: #ffffff"],
+[data-theme="dark"] [style*="background: white"] {
+  background: var(--dark-bg-secondary) !important;
+}
+
+/* Elementos con background gris claro inline */
+[data-theme="dark"] [style*="background: #F5F5F5"],
+[data-theme="dark"] [style*="background: #f5f5f5"] {
+  background: var(--dark-bg-tertiary) !important;
+}
+
+/* Elementos con border gris claro inline */
+[data-theme="dark"] [style*="border: 1px solid #E0E0E0"],
+[data-theme="dark"] [style*="border: 1px solid #e0e0e0"] {
+  border-color: var(--dark-border) !important;
+}
+
+/* ===========================================
+   TRANSICIÓN SUAVE ENTRE TEMAS
+   =========================================== */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .dashboard-header,
+[data-theme="dark"] .main-content {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ===========================================
+   AJUSTES ADICIONALES PARA ELEMENTOS INLINE
+   =========================================== */
+
+/* Más fondos claros comunes */
+[data-theme="dark"] [style*="background: #e8f5e9"],
+[data-theme="dark"] [style*="background: #E8F5E9"] {
+  background: rgba(0, 168, 132, 0.15) !important;
+}
+
+[data-theme="dark"] [style*="background: #fff3e0"],
+[data-theme="dark"] [style*="background: #FFF3E0"] {
+  background: rgba(255, 152, 0, 0.15) !important;
+}
+
+[data-theme="dark"] [style*="background: #ffebee"],
+[data-theme="dark"] [style*="background: #FFEBEE"] {
+  background: rgba(239, 83, 80, 0.15) !important;
+}
+
+[data-theme="dark"] [style*="background: #f0f0f0"],
+[data-theme="dark"] [style*="background: #F0F0F0"] {
+  background: var(--dark-bg-tertiary) !important;
+}
+
+[data-theme="dark"] [style*="background: #e8e8e8"],
+[data-theme="dark"] [style*="background: #E8E8E8"] {
+  background: var(--dark-bg-elevated) !important;
+}
+
+[data-theme="dark"] [style*="background: #dcf8c6"],
+[data-theme="dark"] [style*="background: #DCF8C6"] {
+  background: var(--dark-bubble-sent) !important;
+}
+
+/* Colores de texto comunes */
+[data-theme="dark"] [style*="color: #1a1a1a"],
+[data-theme="dark"] [style*="color: #1A1A1A"],
+[data-theme="dark"] [style*="color: #000"] {
+  color: var(--dark-text-primary) !important;
+}
+
+[data-theme="dark"] [style*="color: #999"],
+[data-theme="dark"] [style*="color: #999999"] {
+  color: var(--dark-text-secondary) !important;
+}
+
+[data-theme="dark"] [style*="color: #2e7d32"],
+[data-theme="dark"] [style*="color: #2E7D32"] {
+  color: var(--dark-success) !important;
+}
+
+[data-theme="dark"] [style*="color: #c62828"],
+[data-theme="dark"] [style*="color: #C62828"] {
+  color: var(--dark-error) !important;
+}
+
+[data-theme="dark"] [style*="color: #ef6c00"],
+[data-theme="dark"] [style*="color: #EF6C00"] {
+  color: var(--dark-warning) !important;
+}
+
+[data-theme="dark"] [style*="color: #128C7E"],
+[data-theme="dark"] [style*="color: #128c7e"] {
+  color: var(--dark-accent) !important;
+}
+
+[data-theme="dark"] [style*="color: #9C27B0"],
+[data-theme="dark"] [style*="color: #9c27b0"] {
+  color: #ba68c8 !important;
+}
+
+/* Colores de borde */
+[data-theme="dark"] [style*="border-color: #ef9a9a"],
+[data-theme="dark"] [style*="border-color: #EF9A9A"] {
+  border-color: rgba(239, 83, 80, 0.5) !important;
+}
+
+[data-theme="dark"] [style*="border-color: #d32f2f"],
+[data-theme="dark"] [style*="border-color: #D32F2F"] {
+  border-color: var(--dark-error) !important;
+}
+
+/* Backgrounds con gradientes */
+[data-theme="dark"] [style*="linear-gradient"][style*="4caf50"],
+[data-theme="dark"] [style*="linear-gradient"][style*="2e7d32"] {
+  filter: brightness(1.1);
+}
+
+/* Login overlay */
+[data-theme="dark"] .login-overlay {
+  background: rgba(11, 20, 26, 0.95);
+}
+
+[data-theme="dark"] .login-card {
+  background: var(--dark-bg-secondary);
+  border: 1px solid var(--dark-border);
+}
+
+[data-theme="dark"] .login-card h2 {
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .login-card p {
+  color: var(--dark-text-secondary);
+}
+
+[data-theme="dark"] .login-form input {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  border-color: var(--dark-border);
+}
+
+[data-theme="dark"] .login-form button {
+  filter: brightness(1.1);
+}
+
+/* Content sections */
+[data-theme="dark"] [class*="content-section"],
+[data-theme="dark"] [class*="section"] {
+  background: var(--dark-bg-secondary);
+  border-color: var(--dark-border);
+}
+
+/* Table responsive wrapper */
+[data-theme="dark"] .table-responsive {
+  background: var(--dark-bg-secondary);
+  border-color: var(--dark-border);
+}
+
+/* Tables con fondo inline */
+[data-theme="dark"] table[style*="background"] {
+  background: var(--dark-bg-secondary) !important;
+}
+
+/* Mensajes de chat */
+[data-theme="dark"] .chat-message,
+[data-theme="dark"] [class*="message"] {
+  background: var(--dark-bubble-received);
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .chat-message.sent,
+[data-theme="dark"] [class*="message"].sent,
+[data-theme="dark"] [class*="message-sent"] {
+  background: var(--dark-bubble-sent);
+}
+
+/* Labels y tags */
+[data-theme="dark"] .label,
+[data-theme="dark"] [class*="label"] {
+  color: var(--dark-text-secondary);
+  background: var(--dark-bg-tertiary);
+}
+
+[data-theme="dark"] .tag {
+  background: var(--dark-bg-elevated);
+  color: var(--dark-text-primary);
+}
+
+/* Status dots */
+[data-theme="dark"] .status-dot {
+  border: none;
+}
+
+/* Action buttons */
+[data-theme="dark"] .action-btn,
+[data-theme="dark"] [class*="action-btn"] {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+}
+
+[data-theme="dark"] .action-btn:hover,
+[data-theme="dark"] [class*="action-btn"]:hover {
+  background: var(--dark-bg-elevated);
+}
+
+/* Dropdowns y selects */
+[data-theme="dark"] select,
+[data-theme="dark"] [role="combobox"] {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+  border-color: var(--dark-border);
+}
+
+/* Cards con estilos inline */
+[data-theme="dark"] [style*="border-radius"][style*="padding"] {
+  background-color: var(--dark-bg-secondary) !important;
+  border-color: var(--dark-border) !important;
+}
+
+/* Ajuste para elementos con display: flex y fondo */
+[data-theme="dark"] div[style*="display: flex"][style*="background: #f5f5f5"],
+[data-theme="dark"] div[style*="display: flex"][style*="background: #fff"] {
+  background: var(--dark-bg-tertiary) !important;
+}
+
+/* Ajuste para span con color específico */
+[data-theme="dark"] span[style*="color: #2C2C2C"],
+[data-theme="dark"] span[style*="color: #2c2c2c"],
+[data-theme="dark"] span[style*="color: #666"],
+[data-theme="dark"] span[style*="color: #666666"] {
+  color: inherit !important;
+}
+
+/* ===========================================
+   MEDIA QUERIES PARA MODO OSCURO
+   =========================================== */
+
+/* Asegurar que en móvil también se vea bien */
+@media (max-width: 768px) {
+  [data-theme="dark"] .sidebar {
+    background: linear-gradient(180deg, #0c1317 0%, #111b21 100%);
+  }
+
+  [data-theme="dark"] .dashboard-header {
+    background: var(--dark-bg-secondary);
+  }
+
+  [data-theme="dark"] .main-content {
+    background: var(--dark-bg-primary);
+  }
+}
+
+/* ===========================================
+   FORZAR COLOR DE TEXTO EN CONTENEDORES
+   =========================================== */
+[data-theme="dark"] .main-content * {
+  text-shadow: none;
+}
+
+[data-theme="dark"] .dashboard-header * {
+  text-shadow: none;
+}
+
+/* ===========================================
+   CORRECCIONES PARA ELEMENTOS ESPECÍFICOS
+   =========================================== */
+
+/* Input file */
+[data-theme="dark"] input[type="file"] {
+  color: var(--dark-text-secondary);
+}
+
+/* Checkbox y radio buttons */
+[data-theme="dark"] input[type="checkbox"],
+[data-theme="dark"] input[type="radio"] {
+  filter: invert(0.9) brightness(1.2);
+}
+
+/* Range inputs */
+[data-theme="dark"] input[type="range"] {
+  background: var(--dark-bg-tertiary);
+}
+
+/* Progress bars */
+[data-theme="dark"] progress {
+  background: var(--dark-bg-tertiary);
+}
+
+[data-theme="dark"] progress::-webkit-progress-bar {
+  background: var(--dark-bg-tertiary);
+}
+
+[data-theme="dark"] progress::-webkit-progress-value {
+  background: var(--dark-accent);
+}
+
+/* Code blocks */
+[data-theme="dark"] code,
+[data-theme="dark"] pre {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+}
+
+/* Blockquotes */
+[data-theme="dark"] blockquote {
+  border-left-color: var(--dark-accent);
+  color: var(--dark-text-secondary);
+}
+
+/* HR separators */
+[data-theme="dark"] hr,
+[data-theme="dark"] [role="separator"] {
+  border-color: var(--dark-border);
+}
+
+/* Tooltips */
+[data-theme="dark"] [title]:hover::after {
+  background: var(--dark-bg-tertiary);
+  color: var(--dark-text-primary);
+}

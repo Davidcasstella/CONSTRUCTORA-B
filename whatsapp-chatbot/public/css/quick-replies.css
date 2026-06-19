@@ -1,0 +1,418 @@
+/* ================================================
+   QUICK REPLIES — Estilos del dropdown slash /
+   y vista CRUD del dashboard
+   ================================================ */
+
+/* ---- Dropdown flotante sobre el input ---- */
+.qr-dropdown {
+    position: absolute !important;
+    bottom: calc(100% + 10px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    max-height: 350px !important;
+    overflow-y: auto !important;
+    z-index: 20000 !important;
+    display: none;
+    animation: qrDropIn 0.15s ease;
+}
+
+@keyframes qrDropIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.qr-dropdown::-webkit-scrollbar {
+    width: 4px;
+}
+
+.qr-dropdown::-webkit-scrollbar-thumb {
+    background: var(--primary-green, #25d366);
+    border-radius: 4px;
+}
+
+/* Cabecera del dropdown */
+.qr-dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary-green, #25d366);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #f0f0f0;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+}
+
+/* Cada item del dropdown */
+.qr-dropdown-item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid #f7f7f7;
+    gap: 2px;
+}
+
+.qr-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.qr-dropdown-item:hover {
+    background: linear-gradient(90deg, #f0fef4 0%, #e8f5e9 100%);
+}
+
+.qr-dropdown-item.focused {
+    background: linear-gradient(90deg, #e8f5e9 0%, #c8e6c9 100%);
+}
+
+.qr-dropdown-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.qr-dropdown-item-title::before {
+    content: '⚡';
+    font-size: 12px;
+}
+
+.qr-dropdown-item-preview {
+    font-size: 12px;
+    color: #777;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Mensaje vacío */
+.qr-dropdown-empty {
+    padding: 16px 14px;
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+}
+
+/* Forzar visibilidad en contenedores de chat */
+.chat-modal-footer,
+.chat-input-container,
+.chat-footer,
+.chat-input-wrapper {
+    overflow: visible !important;
+}
+
+
+/* ---- Hint bajo el input ---- */
+.qr-hint {
+    font-size: 11px;
+    color: #aaa;
+    padding: 2px 6px;
+    position: absolute;
+    bottom: -18px;
+    left: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+/* ================================================
+   VISTA CRUD — Respuestas Rápidas
+   ================================================ */
+#quick-replies-view {
+    padding: 24px 28px;
+    animation: fadeInView 0.2s ease;
+}
+
+
+@keyframes fadeInView {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.qr-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.qr-view-header h2 {
+    margin: 0;
+    color: var(--primary-green, #25d366);
+    font-size: 22px;
+}
+
+.qr-view-header p {
+    margin: 4px 0 0;
+    color: #777;
+    font-size: 13px;
+}
+
+/* Info banner */
+.qr-info-banner {
+    background: #e8f5e9;
+    border-left: 4px solid var(--primary-green, #25d366);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #2e7d32;
+}
+
+/* Tabla de quick replies */
+.qr-table-wrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.qr-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    font-size: 13.5px;
+}
+
+.qr-table thead {
+    background: linear-gradient(135deg, var(--primary-green, #25d366) 0%, #1da851 100%);
+    color: white;
+}
+
+.qr-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.qr-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.12s;
+}
+
+.qr-table tbody tr:hover {
+    background: #f9fef9;
+}
+
+.qr-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+}
+
+.qr-table td.qr-title-cell {
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.qr-table td.qr-content-cell {
+    color: #555;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Toggle switch activo/inactivo */
+.qr-toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.qr-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.qr-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #ccc;
+    border-radius: 22px;
+    transition: background 0.2s;
+}
+
+.qr-toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.qr-toggle input:checked+.qr-toggle-slider {
+    background: var(--primary-green, #25d366);
+}
+
+.qr-toggle input:checked+.qr-toggle-slider::before {
+    transform: translateX(18px);
+}
+
+/* Botones de acción en tabla */
+.qr-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.qr-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+.qr-btn:active {
+    transform: translateY(0);
+}
+
+.qr-btn-edit {
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+    color: white;
+    margin-right: 6px;
+}
+
+.qr-btn-delete {
+    background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+    color: white;
+}
+
+/* Empty state */
+.qr-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #aaa;
+}
+
+.qr-empty-state .qr-empty-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+}
+
+.qr-empty-state h3 {
+    color: #bbb;
+    margin-bottom: 8px;
+}
+
+.qr-empty-state p {
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+/* Loading spinner quick replies */
+#qr-loading {
+    text-align: center;
+    padding: 40px;
+    color: #aaa;
+}
+
+/* =============================================
+   MODAL CREAR / EDITAR RESPUESTA RÁPIDA
+   ============================================= */
+#qr-modal .modal-container {
+    max-width: 560px;
+}
+
+.qr-form-group {
+    margin-bottom: 16px;
+}
+
+.qr-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 13px;
+    color: #444;
+}
+
+.qr-form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    background: #fafafa;
+}
+
+.qr-form-input:focus {
+    outline: none;
+    border-color: var(--primary-green, #25d366);
+    background: #fff;
+}
+
+textarea.qr-form-input {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.qr-form-active {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.qr-form-active label {
+    margin: 0;
+}
+
+.qr-form-error {
+    display: none;
+    color: #c62828;
+    background: #ffebee;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+.qr-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}

@@ -1,0 +1,431 @@
+/**
+ * ===========================================
+ * CORRECCIONES DE TRUNCAMIENTO DE TEXTO
+ * ===========================================
+ *
+ * Archivo separado para corregir problemas donde el texto
+ * se corta o no se ve completo en tarjetas y tablas
+ */
+
+/* ===========================================
+   CORRECCIONES GENERALES DE TABLAS
+   =========================================== */
+
+/* Permitir que las celdas de las tablas se expandan */
+.conversations-table td,
+.conversations-table th {
+  min-width: 0; /* Permitir que el contenido defina el ancho mínimo */
+  max-width: none; /* Remover límites de ancho máximo */
+  overflow: visible; /* Permitir que el contenido sea visible */
+  text-overflow: clip; /* Cortar sin puntos suspensivos si es necesario */
+  height: auto; /* Altura automática */
+  white-space: normal; /* Permitir wrap de texto */
+  word-wrap: break-word; /* Romper palabras largas */
+  overflow-wrap: break-word; /* Romper palabras largas */
+}
+
+/* Excepción: Para ciertos elementos donde elipsis es deseable */
+.last-message {
+  max-width: 250px; /* Aumentado de 175px */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===========================================
+   CORRECCIONES PARA TABLA DE DOCUMENTOS
+   =========================================== */
+
+/* Ajustes específicos para la tabla de documentos */
+#documents-view-content .conversations-table th:nth-child(2) {
+  /* Nombre del Archivo - permitir wrap */
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 200px; /* Ancho mínimo garantizado */
+}
+
+#documents-view-content .conversations-table td:nth-child(2) {
+  /* Nombre del Archivo - permitir wrap en celdas de datos */
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+#documents-view-content .conversations-table th:nth-child(7) {
+  /* Acciones - ajustar para botones */
+  white-space: nowrap;
+  min-width: 180px;
+}
+
+/* ===========================================
+   CORRECCIONES PARA CONTROL DE NÚMEROS
+   =========================================== */
+
+/* Tabla "Todos los números" */
+#nc-tab-content-all .conversations-table th:nth-child(3),
+#nc-tab-content-all .conversations-table td:nth-child(3) {
+  /* Última Interacción - permitir wrap */
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 150px;
+}
+
+#nc-tab-content-all .conversations-table th:nth-child(5) {
+  /* Acción - mantener nowrap para botones */
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+/* Tabla "IA Desactivada" */
+#nc-tab-content-disabled .conversations-table th:nth-child(4) {
+  /* Motivo - permitir wrap para texto largo */
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 200px;
+}
+
+#nc-tab-content-disabled .conversations-table td:nth-child(4) {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Tabla "Bloqueados (Spam)" */
+#nc-spam-content .conversations-table th:nth-child(4) {
+  /* Motivo - permitir wrap */
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 200px;
+}
+
+#nc-spam-content .conversations-table td:nth-child(4) {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ===========================================
+   CORRECCIONES PARA TABLA DE CONVERSACIONES
+   =========================================== */
+
+#conversations-content .conversations-table th:nth-child(3),
+#conversations-content .conversations-table td:nth-child(3) {
+  /* Último Mensaje - aumentar límite */
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 180px;
+}
+
+#conversations-content .conversations-table th:nth-child(7) {
+  /* Acciones - mantener nowrap para botones */
+  white-space: nowrap;
+  min-width: 140px;
+}
+
+/* ===========================================
+   CORRECCIONES PARA TARJETAS (CARDS)
+   =========================================== */
+
+/* Asegurar que las tarjetas de estadísticas tengan altura adecuada */
+.stat-card {
+  min-height: 90px; /* Aumentado para contenido */
+  height: auto; /* Permitir expansión */
+  padding: 15px; /* Padding interno suficiente */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.stat-number {
+  /* Asegurar que el número se vea completo */
+  font-size: 28px;
+  font-weight: 700;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.stat-label {
+  /* Permitir wrap en labels */
+  font-size: 12px;
+  text-align: center;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* ===========================================
+   CORRECCIONES PARA DOCUMENT ITEMS
+   =========================================== */
+
+.document-item {
+  min-height: 70px; /* Altura mínima para el contenido */
+  height: auto; /* Permitir expansión */
+}
+
+.document-name {
+  /* Permitir que el nombre del archivo se vea completo */
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-gray);
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.document-meta {
+  font-size: 12px;
+  color: var(--medium-gray);
+  white-space: normal;
+}
+
+/* ===========================================
+   CORRECCIONES PARA NOMBRES Y TÉRMINOS
+   =========================================== */
+
+/* Permitir que los nombres largos se vean completos */
+.user-name,
+.contact-name,
+.phone-number,
+.customer-name {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ===========================================
+   CORRECCIONES PARA HEADER EN MÓVIL
+   =========================================== */
+
+@media (max-width: 375px) {
+  .header-title {
+    max-width: 150px; /* Aumentado de 100px */
+    white-space: normal; /* Permitir wrap si es muy largo */
+  }
+
+  .header-subtitle {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 320px) {
+  .header-title {
+    max-width: 120px; /* Aumentado de 80px */
+  }
+}
+
+/* ===========================================
+   CORRECCIONES PARA NAVEGACIÓN LATERAL
+   =========================================== */
+
+.nav-item-text {
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+/* ===========================================
+   CORRECCIONES PARA BOTONES Y ACCIONES
+   =========================================== */
+
+.upload-btn,
+.btn-small,
+.action-btn {
+  white-space: nowrap; /* Mantener nowrap en botones */
+  min-height: auto;
+  height: auto;
+}
+
+/* Para botones con texto muy largo en pantallas pequeñas */
+@media (max-width: 480px) {
+  .upload-btn {
+    font-size: 11px;
+    padding: 8px 12px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+  }
+}
+
+/* ===========================================
+   CORRECCIONES PARA BADGES Y ETIQUETAS
+   =========================================== */
+
+.status-badge,
+.badge,
+.tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* En móvil, permitir wrap en badges si es necesario */
+@media (max-width: 480px) {
+  .status-badge,
+  .badge {
+    max-width: 150px;
+  }
+}
+
+/* ===========================================
+   CORRECCIONES PARA TOOLTIPS
+   =========================================== */
+
+/* Agregar tooltips nativos para contenido truncado */
+[title]:hover {
+  position: relative;
+}
+
+/* ===========================================
+   CORRECCIONES PARA ELEMENTOS FLEX
+   =========================================== */
+
+/* Asegurar que elementos flex no corten texto */
+.flex-container,
+[style*="display: flex"] {
+  min-width: 0;
+}
+
+.flex-text {
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ===========================================
+   CORRECCIONES PARA MODALES
+   =========================================== */
+
+.modal-container {
+  max-width: 90vw; /* No más del 90% del viewport */
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-body {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* ===========================================
+   AJUSTES RESPONSIVOS ADICIONALES
+   =========================================== */
+
+/* Tablet pequeña */
+@media (max-width: 768px) {
+  /* Ajustar anchos de columnas en tablas */
+  .conversations-table th,
+  .conversations-table td {
+    min-width: 80px;
+  }
+
+  /* Permitir wrap en más columnas */
+  .conversations-table th,
+  .conversations-table td {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  /* Excepciones: mantener nowrap en columnas de acciones */
+  .conversations-table th:last-child,
+  .conversations-table td:last-child {
+    white-space: nowrap;
+  }
+}
+
+/* Móvil */
+@media (max-width: 480px) {
+  /* Permitir scroll horizontal en tablas */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ajustar last-message para móvil */
+  .last-message {
+    max-width: 120px; /* Reducido para móviles pequeños */
+  }
+}
+
+/* ===========================================
+   CORRECCIONES PARA TEXTO LARGO EN CELDAS
+   =========================================== */
+
+/* Para nombres de archivos y rutas largas */
+.file-name,
+.file-path,
+.document-path {
+  word-break: break-all;
+  word-wrap: break-word;
+  max-width: 300px;
+}
+
+/* Para URLs y correos electrónicos */
+.email,
+.url {
+  word-break: break-all;
+  word-wrap: break-word;
+}
+
+/* ===========================================
+   CORRECCIONES PARA DÍAS FESTIVOS
+   =========================================== */
+
+#holidays-view .calendar-day {
+  min-height: 40px; /* Altura mínima para celdas del calendario */
+  height: auto;
+  padding: 8px 4px;
+  word-wrap: break-word;
+}
+
+/* ===========================================
+   CORRECCIONES PARA CONFIGURACIÓN
+   =========================================== */
+
+#settings-view .setting-item,
+#settings-view .setting-label {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* ===========================================
+   CORRECCIONES GENERALES
+   =========================================== */
+
+/* Remover truncamiento en elementos donde no es necesario */
+p,
+span,
+div:not(.conversations-table td):not(.conversations-table th) {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Para elementos con data-tooltip (tooltips personalizados) */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
