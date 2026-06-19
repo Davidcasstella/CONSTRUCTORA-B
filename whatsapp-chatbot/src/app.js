@@ -49,14 +49,16 @@ app.use(express.urlencoded({ extended: true }));
 // ===========================================
 // ARCHIVOS ESTÁTICOS (Interfaz Web)
 // ===========================================
+
+// Serve React frontend (production build) first so it takes precedence
+const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendDistPath));
+
+// Fallback to old public folder if needed
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Serve uploaded media (status images, etc.) as static files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-// Serve React frontend (production build)
-const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
-app.use(express.static(frontendDistPath));
 
 
 // ===========================================
