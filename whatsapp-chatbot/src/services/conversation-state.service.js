@@ -119,6 +119,9 @@ async function loadConversationsFromDB() {
         metadata: convData.metadata || {},
         tags: convData.tags || [],
 
+        // ✅ DEVICE: Restaurar sesión asignada
+        sessionId: convData.sessionId || null,
+
         // ✅ Campos de gestión (CRITICAL: restaurar desde DB)
         customName: convData.customName || null,
         isDeleted: convData.isDeleted || false
@@ -262,6 +265,8 @@ function getOrCreateConversation(userId, options = {}) {
       customName: null,
       isDeleted: false,
       whatsappNameUpdatedAt: whatsappName ? Date.now() : null,
+      // ✅ DEVICE: WhatsApp session that manages this conversation (session1 or session2)
+      sessionId: options.sessionId || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -701,6 +706,23 @@ function cleanOldMessages(userId, daysToKeep = 1) {
   return 0; // Ya se maneja en lógica de reset
 }
 
+/**
+ * Updates the sessionId (WhatsApp device) associated with a conversation.
+ * Called every time a message is received from a specific session.
+ * @param {string} userId - WhatsApp JID
+ * @param {string} sessionId - 'session1' or 'session2'
+ */
+function updateSessionId(userId, sessionId) {
+  if (!userId || !sessionId) return;
+  const conversation = conversationsCache.get(userId);
+  if (!conversation) return;
+  if (conversation.sessionId !== sessionId) {
+    conversation.sessionId = sessionId;
+    persistConversation(conversation);
+    logger.debug(`📱 [SESSION] ${userId} asignado a ${sessionId}`);
+  }
+}
+
 module.exports = {
   getOrCreateConversation,
   extractPhoneNumber,
@@ -732,5 +754,7 @@ module.exports = {
   loadConversationsFromDB,
   updateCustomName,
   softDeleteConversation,
-  getAllConversationsRaw
+  getAllConversationsRaw,
+  // ✅ DEVICE: Update which session manages a conversation
+  updateSessionId
 };

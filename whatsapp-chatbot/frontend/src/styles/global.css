@@ -8,12 +8,12 @@
 
 /* CSS Variables */
 :root {
-  --primary-green: #075E54;
-  --primary-green-light: #128C7E;
-  --primary-green-dark: #064940;
-  --accent-green: #25D366;
-  --light-green: #25D366;
-  --whatsapp-green: #DCF8C6;
+  --primary-green: #FF8C00; /* Dark Orange */
+  --primary-green-light: #FFB347; /* Light Orange/Yellow */
+  --primary-green-dark: #D68910; /* Darker Orange */
+  --accent-green: #F1C40F; /* Yellow Accent */
+  --light-green: #F5B041;
+  --whatsapp-green: #FEF9E7; /* Light yellowish background for bubbles */
   --bg-light: #f5f7fa;
   --bg-dark: #1a1a2e;
   --text-primary: #333;
@@ -21,7 +21,7 @@
   --text-muted: #999;
   --border-color: #e0e0e0;
   --card-bg: #fff;
-  --sidebar-bg: linear-gradient(180deg, #075E54, #064940);
+  --sidebar-bg: #37474F; /* Dark Blue-Gray */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);

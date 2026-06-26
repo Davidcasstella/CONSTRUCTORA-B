@@ -46,7 +46,7 @@ export async function downloadMonthlyReport(month, year, period = null) {
   const a = document.createElement('a');
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   a.href = url;
-  a.download = `NORBOY_Reporte_${monthNames[month - 1]}_${year}.pdf`;
+  a.download = `CONSTRUCTORA_GyA_Reporte_${monthNames[month - 1]}_${year}.pdf`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

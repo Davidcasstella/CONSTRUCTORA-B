@@ -158,6 +158,8 @@ class ConversationRepository {
         whatsappName: data.whatsappName || null,
         whatsappNameUpdatedAt: data.whatsappNameUpdatedAt || null,
         bot_active: data.bot_active !== undefined ? data.bot_active : true,
+        // ✅ DEVICE
+        sessionId: data.sessionId || null,
         // ✅ NUEVO: Persistencia de gestión
         customName: data.customName || null,
         isDeleted: data.isDeleted || false,
@@ -242,11 +244,30 @@ class ConversationRepository {
   _findActiveCache = { conversations: null, ts: 0 };
   _CACHE_TTL_MS = 30000; // 30 seconds
 
+  // ✅ PERFORMANCE: Per-conversation message cache to avoid repeated DynamoDB queries
+  // Key: participantId, Value: { messages: [], ts: number }
+  _historyCache = new Map();
+  _HISTORY_CACHE_TTL_MS = 10000; // 10 seconds — short to show new messages quickly
+
   /**
    * Invalidate the findActive cache (call after write operations)
    */
   invalidateCache() {
     this._findActiveCache = { conversations: null, ts: 0 };
+  }
+
+  /**
+   * Invalidate history cache for a specific participant (called after saveMessage)
+   * @param {string} participantId
+   */
+  invalidateHistoryCache(participantId) {
+    if (!participantId) return;
+    // Delete all cache entries for this participant (any cursor)
+    for (const key of this._historyCache.keys()) {
+      if (key.startsWith(participantId + ':')) {
+        this._historyCache.delete(key);
+      }
+    }
   }
 
   /**
@@ -412,6 +433,10 @@ class ConversationRepository {
       await docClient.send(command);
       logger.info(`✅ [DYNAMODB] Mensaje guardado: ${message.id}`);
 
+      // ✅ PERFORMANCE: Invalidate history cache so new message appears immediately
+      const pid = message.participantId || message.from || message.to;
+      if (pid) this.invalidateHistoryCache(pid);
+
       return message;
     } catch (error) {
       // ✅ Ignorar duplicados silenciosamente
@@ -467,6 +492,7 @@ class ConversationRepository {
 
   /**
    * Obtiene el historial de mensajes
+   * Uses 10-second in-memory cache per conversation to avoid repeated DynamoDB round-trips
    * @param {string} participantId
    * @param {Object} options
    * @returns {Promise<Array<Message>>}
@@ -474,8 +500,16 @@ class ConversationRepository {
   async getHistory(participantId, options = { limit: 20 }) {
     if (!this._isAvailable()) return [];
     try {
-      // Build key condition — add timestamp cursor if provided
       const hasBeforeCursor = options.beforeTimestamp && typeof options.beforeTimestamp === 'number';
+      // ✅ Cache key includes cursor so paginated loads are cached independently
+      const cacheKey = `${participantId}:${options.limit || 20}:${options.beforeTimestamp || 'start'}`;
+      const now = Date.now();
+      const cached = this._historyCache.get(cacheKey);
+
+      if (cached && (now - cached.ts) < this._HISTORY_CACHE_TTL_MS) {
+        logger.info(`⚡ [DYNAMO] getHistory from CACHE for ${participantId} (age: ${now - cached.ts}ms, ${cached.messages.length} msgs)`);
+        return cached.messages;
+      }
 
       const command = new QueryCommand({
         TableName: TABLES.MESSAGES,
@@ -498,9 +532,20 @@ class ConversationRepository {
         .map(item => new Message(item))
         .reverse();
 
+      // Store in cache
+      this._historyCache.set(cacheKey, { messages, ts: now });
+      logger.info(`📜 [DYNAMO] getHistory QUERY for ${participantId}: ${messages.length} msgs cached`);
+
       return messages;
     } catch (error) {
       logger.error(`Error obteniendo historial de ${participantId}:`, error);
+      // Return stale cache on error if available
+      const staleKey = `${participantId}:${options.limit || 20}:${options.beforeTimestamp || 'start'}`;
+      const stale = this._historyCache.get(staleKey);
+      if (stale) {
+        logger.warn(`⚠️ [DYNAMO] Returning stale history cache for ${participantId}`);
+        return stale.messages;
+      }
       return [];
     }
   }

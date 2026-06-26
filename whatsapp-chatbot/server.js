@@ -27,6 +27,7 @@ const { requireAuth } = require('./src/middlewares/auth.middleware');
 const logger = require('./src/utils/logger');
 const messageProcessor = require('./src/services/message-processor.service');
 const advisorControlService = require('./src/services/advisor-control.service');
+const conversationStateService = require('./src/services/conversation-state.service');
 
 // Multi-session manager (replaces single whatsappWeb singleton)
 const sessionManager = require('./src/providers/whatsapp/session-manager');
@@ -188,6 +189,9 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
     const body = message.body;
     const type = message.type;
     const pushName = message.pushName || null;
+
+    // ✅ DEVICE: Tag the conversation with the session that received the message
+    conversationStateService.updateSessionId(from, sessionId);
 
     // Detect chat type
     const chatType = from.includes('@lid') ? 'LID' :

@@ -97,11 +97,12 @@ export default function ChatPage() {
     if (!messageInput.trim() || !selectedUserId) return;
     try {
       const user = JSON.parse(localStorage.getItem('authUser') || '{}');
-      await convService.sendMessage(selectedUserId, messageInput, {
-        id: user.id || 'advisor_dashboard',
+      const authData = {
+        id: user.id || user.username || 'advisor_' + Date.now(),
         name: user.name || user.username || 'Asesor',
-        email: user.email || 'advisor@norboy.coop'
-      });
+        email: user.email || 'admin@constructoragya.com'
+      };
+      await convService.sendMessage(selectedUserId, messageInput, authData);
       setMessageInput('');
       await loadMessages(selectedUserId);
     } catch (err) {
@@ -175,10 +176,10 @@ export default function ChatPage() {
       {/* Chat Panel */}
       <div className="chat-panel">
         {!selectedUserId ? (
-          <div className="chat-empty-state">
-            <div className="empty-icon" style={{ fontSize: '64px' }}>💬</div>
-            <h2>NORBOY Chat</h2>
-            <p>Selecciona una conversación del panel izquierdo para ver los mensajes y responder en tiempo real.</p>
+          <div className="chat-empty-state" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+            <div style={{ fontSize: 60, marginBottom: 15 }}>💬</div>
+            <h2>CONSTRUCTORA G&A Chat</h2>
+            <p>Selecciona una conversación del panel izquierdo para comenzar a chatear.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

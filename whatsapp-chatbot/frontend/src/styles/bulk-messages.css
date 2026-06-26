@@ -117,7 +117,7 @@
 }
 
 .bulk-step.active .bulk-step-number {
-  background: linear-gradient(135deg, #25D366, #128C7E);
+  background: linear-gradient(135deg, #FFB347, #FF8C00);
   color: white;
   box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
 }
@@ -488,7 +488,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #25D366, #128C7E);
+  background: linear-gradient(90deg, #FFB347, #FF8C00);
   border-radius: 10px;
   transition: width 0.3s ease;
   min-width: 2%;
@@ -869,7 +869,7 @@ body.dark-mode .bulk-step-number { background: #2d3a57; color: #666; }
 }
 
 .toolbar-btn.primary:hover {
-  background: #128C7E;
+  background: #FF8C00;
 }
 
 .contact-table-wrapper {

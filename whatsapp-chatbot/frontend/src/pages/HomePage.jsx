@@ -168,10 +168,10 @@ export default function HomePage() {
     <div className="container">
       <div className="header" style={{ marginBottom: '20px' }}>
         <div className="header-left">
-          <img src="/LOGO.jpeg" alt="NORBOY Logo" className="logo" style={{ width: 50, height: 50, objectFit: 'contain' }} />
+          <img src="/Logo-PNG-gya-blanco.png" alt="CONSTRUCTORA G&A Logo" className="logo" style={{ width: 50, height: 50, objectFit: 'contain', background: '#37474F', borderRadius: '4px' }} />
           <div className="header-title">
-            <h1 style={{ margin: 0, fontSize: '1.4em' }}>NORBOY Chatbot</h1>
-            <p style={{ margin: 0, fontSize: '0.85em', color: '#666' }}>Elegimos Juntos 2026-2029</p>
+            <h1 style={{ margin: 0, fontSize: '1.4em' }}>CONSTRUCTORA G&A Chatbot</h1>
+            <p style={{ margin: 0, fontSize: '0.85em', color: '#666' }}></p>
           </div>
         </div>
       </div>

@@ -159,8 +159,8 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          <img src="/LOGO.jpeg" alt="NORBOY Logo" style={{ maxWidth: '80px', height: 'auto', marginBottom: '6px' }} />
-          <div className="sidebar-logo-text">NORBOY</div>
+          <img src="/Logo-PNG-gya-blanco.png" alt="CONSTRUCTORA G&A Logo" style={{ maxWidth: '80px', height: 'auto', marginBottom: '6px' }} />
+          <div className="sidebar-logo-text">CONSTRUCTORA G&A</div>
           <div className="sidebar-logo-subtitle">Chatbot WhatsApp</div>
         </div>
 
@@ -185,7 +185,7 @@ export default function DashboardLayout() {
                     fontWeight: 700,
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
-                    background: 'linear-gradient(135deg, #25d366, #128c7e)',
+                    background: 'linear-gradient(135deg, #FFB347, #FF8C00)',
                     color: '#fff',
                     padding: '2px 6px',
                     borderRadius: '20px',

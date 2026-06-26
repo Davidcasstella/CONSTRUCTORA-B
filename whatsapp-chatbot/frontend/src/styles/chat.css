@@ -133,7 +133,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  background: #075e54;
+  background: #37474F;
   color: white;
 }
 .chat-header-avatar-sm {
@@ -176,7 +176,7 @@
   box-shadow: 0 1px 1px rgba(0,0,0,0.08);
 }
 .chat-bubble.outgoing {
-  background: #dcf8c6;
+  background: #FDEBD0;
   margin-left: auto;
   border-bottom-right-radius: 2px;
   box-shadow: 0 1px 1px rgba(0,0,0,0.08);
@@ -215,7 +215,7 @@
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: #075e54;
+  background: #FF8C00;
   color: white;
   cursor: pointer;
   display: flex;
@@ -224,7 +224,7 @@
   flex-shrink: 0;
   transition: all 0.15s;
 }
-.chat-send-btn:hover { background: #128c7e; }
+.chat-send-btn:hover { background: #D68910; }
 
 /* ============ DARK MODE ============ */
 body.dark-mode .conv-list-panel { background: #16213e; }

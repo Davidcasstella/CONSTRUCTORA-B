@@ -1597,6 +1597,27 @@ class BaileysProvider extends EventEmitter {
   }
 
   /**
+   * Obtiene la foto de perfil de un contacto desde WhatsApp
+   * @param {string} jid x  
+   * @returns {Promise<string|null>}
+   */
+  async getProfilePictureUrl(jid) {
+    if (!this.isReady || !this.sock) {
+      return null;
+    }
+    try {
+      // Baileys usa profilePictureUrl para obtener el avatar
+      // el segundo param es 'image' o 'preview'
+      const url = await this.sock.profilePictureUrl(jid, 'image');
+      return url;
+    } catch (error) {
+      // Es normal que tire error si el usuario no tiene foto o la tiene privada.
+      logger.debug(`No se pudo obtener foto de perfil para ${jid} (quizás privada o sin foto).`);
+      return null;
+    }
+  }
+
+  /**
    * Transforma un chat de Baileys al formato del dashboard
    */
   _transformChat(chat) {
@@ -1909,9 +1930,9 @@ class BaileysProvider extends EventEmitter {
 
     // Build the full key object Baileys expects for revocation
     const key = {
-      remoteJid:   waMessageKey.remoteJid  || 'status@broadcast',
-      fromMe:      waMessageKey.fromMe     ?? true,
-      id:          waMessageKey.id,
+      remoteJid: waMessageKey.remoteJid || 'status@broadcast',
+      fromMe: waMessageKey.fromMe ?? true,
+      id: waMessageKey.id,
       participant: waMessageKey.participant || `${this.miNumero}@s.whatsapp.net`,
     };
 

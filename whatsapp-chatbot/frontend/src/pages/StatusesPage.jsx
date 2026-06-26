@@ -6,8 +6,8 @@ import '../styles/statuses.css';
 const STORY_DURATION_MS = 5000; // 5 seconds per status
 
 const BG_COLORS = [
-  { bg: '#075E54', text: '#ffffff' },
-  { bg: '#128C7E', text: '#ffffff' },
+  { bg: '#FF8C00', text: '#ffffff' },
+  { bg: '#FFB347', text: '#ffffff' },
   { bg: '#25D366', text: '#ffffff' },
   { bg: '#1565C0', text: '#ffffff' },
   { bg: '#6A1B9A', text: '#ffffff' },
@@ -339,7 +339,7 @@ function StoryViewer({ statuses, activeGroupIndex, onClose, onDelete, currentUse
         ) : (
           <div
             className="story-text-content"
-            style={{ background: currentItem.color || '#075E54' }}
+            style={{ background: currentItem.color || '#FF8C00' }}
           >
             <div
               className="story-text-body"
@@ -888,7 +888,7 @@ export default function StatusesPage() {
               style={{
                 marginTop: 20,
                 padding: '12px 28px',
-                background: 'linear-gradient(135deg, #128C7E, #075E54)',
+                background: 'linear-gradient(135deg, #FFB347, #FF8C00)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 30,

@@ -34,6 +34,10 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
+// ✅ Profile picture cache (in-memory, per-JID, with TTL)
+const profilePicCache = new Map();
+const PROFILE_PIC_TTL = 30 * 60 * 1000; // 30 minutes
+
 // ✅ NUEVO: Socket.IO para emitir eventos
 let io = null;
 
@@ -1715,7 +1719,8 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
           lastInteraction: data.lastInteraction || (data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now()),
           unreadCount: 0,
           status: data.status || 'active',
-          bot_active: data.status !== 'advisor_handled'
+          bot_active: data.status !== 'advisor_handled',
+          sessionId: data.sessionId || null
         };
         if (data.isDeleted) {
           chatsByUserId.delete(data.participantId);
@@ -1754,7 +1759,8 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
             lastInteraction: conv.lastInteraction || Date.now(),
             unreadCount: 0,
             status: conv.status || 'active',
-            bot_active: conv.bot_active !== undefined ? conv.bot_active : true
+            bot_active: conv.bot_active !== undefined ? conv.bot_active : true,
+            sessionId: conv.sessionId || null
           };
 
           const existing = chatsByUserId.get(conv.userId);
@@ -1764,7 +1770,9 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
               lastMessage: conv.lastMessage || existing.lastMessage,
               lastInteraction: Math.max(conv.lastInteraction || 0, existing.lastInteraction || 0),
               bot_active: conv.bot_active !== undefined ? conv.bot_active : existing.bot_active,
-              customName: conv.customName || existing.customName
+              customName: conv.customName || existing.customName,
+              // ✅ DEVICE: Memory always has the most up-to-date sessionId
+              sessionId: conv.sessionId || existing.sessionId
             });
           } else {
             chatsByUserId.set(conv.userId, memChat);
@@ -1821,7 +1829,9 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
         isGroup, // ✅ NUEVO: Flag para filtrar grupos en el frontend
         iaControlled: controlRecord !== null,
         iaActive: iaCheck.shouldRespond,
-        iaControlReason: controlRecord?.reason || null
+        iaControlReason: controlRecord?.reason || null,
+        // ✅ DEVICE: Which WhatsApp session (device) manages this conversation
+        sessionId: chat.sessionId || null
       };
     });
 
@@ -2011,6 +2021,42 @@ router.get('/:userId/whatsapp-messages', requireAuth, async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+// ===========================================
+// ✅ NUEVO: FOTO DE PERFIL
+// ===========================================
+
+/**
+ * GET /api/conversations/:userId/profile-picture
+ * Obtiene la foto de perfil del usuario de WhatsApp.
+ */
+router.get('/:userId/profile-picture', async (req, res) => {
+  try {
+    let { userId } = req.params;
+    
+    // Validar JID
+    if (!userId.includes('@')) {
+      userId = `${userId}@s.whatsapp.net`;
+    }
+
+    // Revisar caché
+    const cached = profilePicCache.get(userId);
+    if (cached && (Date.now() - cached.timestamp < PROFILE_PIC_TTL)) {
+      return res.json({ success: true, url: cached.url });
+    }
+
+    const whatsappProvider = require('../providers/whatsapp');
+    const url = await whatsappProvider.getProfilePictureUrl(userId);
+    
+    // Guardar en caché incluso si es null (para no seguir consultando si no tiene foto)
+    profilePicCache.set(userId, { url, timestamp: Date.now() });
+
+    res.json({ success: true, url });
+  } catch (error) {
+    logger.error(`Error obteniendo foto de perfil para ${req.params.userId}:`, error);
+    res.json({ success: false, url: null });
   }
 });
 

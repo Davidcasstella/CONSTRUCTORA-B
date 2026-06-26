@@ -123,15 +123,75 @@ function downloadFile(url, filename) {
     .catch(() => window.open(url, '_blank'));
 }
 
+// ===========================
+// PROFILE AVATAR COMPONENT
+// ===========================
+function ProfileAvatar({ jid, name, isGroup, onClick }) {
+  const [picUrl, setPicUrl] = useState(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!jid || isGroup) return;
+
+    // We can use a local in-memory cache on the frontend to avoid repeated fetches across remounts
+    const cacheKey = `profile_pic_v4_${jid}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      if (cached === 'null') setError(true);
+      else setPicUrl(cached);
+      return;
+    }
+
+    const fetchPic = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const res = await fetch(`/api/conversations/${jid}/profile-picture`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.url) {
+          setPicUrl(data.url);
+          sessionStorage.setItem(cacheKey, data.url);
+        } else if (res.ok && data.success === true && !data.url) {
+          // It successfully queried but user has no pic
+          setError(true);
+          sessionStorage.setItem(cacheKey, 'null');
+        } else {
+          // If 404 or 500, don't cache the null permanently so it retries next time
+          setError(true);
+        }
+      } catch (err) {
+        setError(true);
+      }
+    };
+    fetchPic();
+  }, [jid, isGroup]);
+
+  if (isGroup || (jid && jid.endsWith('@g.us'))) {
+    return <div className="conv-avatar">👥</div>;
+  }
+
+  if (!picUrl || error) {
+    return <div className="conv-avatar">{getInitials(name)}</div>;
+  }
+
+  return (
+    <div className="conv-avatar" onClick={(e) => { e.stopPropagation(); onClick && onClick(picUrl); }} style={{ cursor: 'pointer', padding: 0, overflow: 'hidden', backgroundColor: '#37474F' }}>
+      <img src={picUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    </div>
+  );
+}
+
 function getCurrentAdvisor() {
   try {
-    const u = JSON.parse(localStorage.getItem('authUser') || '{}');
+    const u = JSON.parse(localStorage.getItem('user'));
+    if (!u) return { id: 'admin', name: 'admin', email: 'admin@constructoragya.com' };
     return {
-      id: u.username || 'advisor_' + Date.now(),
-      name: u.username || 'Asesor',
-      email: u.email || `${u.username || 'advisor'}@norboy.coop`
+      id: u.id || u.username || 'advisor_' + Date.now(),
+      name: u.name || u.username || 'Asesor',
+      email: u.email || `${u.username || 'advisor'}@constructoragya.com`
     };
-  } catch { return { id: 'advisor_' + Date.now(), name: 'Asesor', email: 'advisor@norboy.coop' }; }
+  } catch { return { id: 'advisor_' + Date.now(), name: 'Asesor', email: 'advisor@constructoragya.com' }; }
 }
 
 const EMOJIS = ['😀','😃','😄','😁','😅','😂','🤣','😊','😇','🙂','😉','😍','🥰','😘','😗','😙','😋','😛','😜','🤪','😎','🤩','🥳','😏','😤','😠','😡','🤬','😢','😭','😱','😰','👍','👎','👋','🤝','🙏','👏','💪','🎉','❤️','💚','💙','💜','🔥','⭐','✅','❌'];
@@ -145,8 +205,23 @@ const STATUS_CONFIG = {
   new_cycle: { text: 'Nuevo Ciclo', cls: 'new_cycle', bg: '#e0f7fa', color: '#00838f' },
 };
 
+// ✅ DEVICE: Badge config for each WhatsApp session
+const DEVICE_CONFIG = {
+  session1: { label: 'Disp. 1', color: '#1565c0', bg: '#e3f2fd', emoji: '📱' },
+  session2: { label: 'Disp. 2', color: '#6a1b9a', bg: '#f3e5f5', emoji: '📲' },
+};
+
 // ✅ PERFORMANCE: Module-level cache — survives tab switches (component unmount/remount)
 const _convsCache = { data: null, stats: null, ts: 0, hasMore: false, selectedUserId: null, scrollPositions: {} };
+
+// ✅ PERFORMANCE: Per-conversation message cache (15s TTL)
+// Key: userId, Value: { messages, cursor, hasMore, ts }
+const _msgsCache = new Map();
+const MSGS_CACHE_TTL_MS = 15000;
+
+function _invalidateMsgsCache(userId) {
+  if (userId) _msgsCache.delete(userId);
+}
 
 // ===========================
 // MAIN COMPONENT
@@ -180,6 +255,10 @@ export default function ConversationsPage() {
   const [hasMoreMsgs, setHasMoreMsgs] = useState(false);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  
+  // NEW: Lightbox state
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null); // [{ file, type, url, caption }] or null
@@ -387,15 +466,50 @@ export default function ConversationsPage() {
     setSelectedUserId(userId);
     const conv = conversations.find(c => c.userId === userId);
     setSelectedConv(conv);
-    setMessages([]);
-    setLoadingMsgs(true);
     renderedIdsRef.current = new Set();
-    setMessageCursor(null);
-    setHasMoreMsgs(false);
     setReplyTo(null);
     setShowEmojiPicker(false);
     setShowAttachMenu(false);
     justOpenedChatRef.current = true;
+
+    // ✅ PERFORMANCE: Serve from cache instantly if fresh (< 15s)
+    const now = Date.now();
+    const cached = _msgsCache.get(userId);
+    if (cached && (now - cached.ts) < MSGS_CACHE_TTL_MS) {
+      setMessages(cached.messages);
+      setMessageCursor(cached.cursor || null);
+      setHasMoreMsgs(cached.hasMore || false);
+      setLoadingMsgs(false);
+      cached.messages.forEach(m => { if (m.id) renderedIdsRef.current.add(m.id); });
+      // Background refresh to pick up any new messages
+      convService.getMessages(userId, 20).then(data => {
+        if (data?.success && data.messages?.length > 0) {
+          _msgsCache.set(userId, { messages: data.messages, cursor: data.nextCursor || null, hasMore: data.hasMore || false, ts: Date.now() });
+          // Only update if still viewing this conversation
+          if (selectedUserIdRef.current === userId) {
+            setMessages(prev => {
+              const merged = [...data.messages];
+              const newIds = new Set(data.messages.map(m => m.id));
+              prev.forEach(p => {
+                if (!newIds.has(p.id)) merged.push(p);
+              });
+              merged.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+              return merged;
+            });
+            data.messages.forEach(m => { if (m.id) renderedIdsRef.current.add(m.id); });
+            setMessageCursor(data.nextCursor || null);
+            setHasMoreMsgs(data.hasMore || false);
+          }
+        }
+      }).catch(() => {});
+      return;
+    }
+
+    // No cache: show loading spinner and fetch from server
+    setMessages([]);
+    setMessageCursor(null);
+    setHasMoreMsgs(false);
+    setLoadingMsgs(true);
 
     try {
       const data = await convService.getMessages(userId, 20);
@@ -404,6 +518,8 @@ export default function ConversationsPage() {
         data.messages.forEach(m => { if (m.id) renderedIdsRef.current.add(m.id); });
         setMessageCursor(data.nextCursor || null);
         setHasMoreMsgs(data.hasMore || false);
+        // Store in cache
+        _msgsCache.set(userId, { messages: data.messages, cursor: data.nextCursor || null, hasMore: data.hasMore || false, ts: Date.now() });
       }
     } catch (e) { console.error('Error loading messages:', e); }
     setLoadingMsgs(false);
@@ -885,6 +1001,8 @@ export default function ConversationsPage() {
           }, 100);
         }
       }
+      // ✅ PERFORMANCE: Invalidate message cache so next open fetches fresh data
+      _invalidateMsgsCache(targetUserId);
       // Refresh conversation list
       loadConversations(0);
       loadStats();
@@ -1111,6 +1229,9 @@ export default function ConversationsPage() {
     .filter(c => {
       // ✅ Groups filter: show only group chats (@g.us)
       if (filter === 'groups') return c.isGroup || (c.userId && c.userId.endsWith('@g.us'));
+      // ✅ Device filters: show only conversations from that session
+      if (filter === 'device1') return c.sessionId === 'session1';
+      if (filter === 'device2') return c.sessionId === 'session2';
       // ✅ All other filters exclude groups by default
       const isGroup = c.isGroup || (c.userId && c.userId.endsWith('@g.us'));
       if (isGroup) return false;
@@ -1331,6 +1452,8 @@ export default function ConversationsPage() {
             <div className="conv-filter-row">
               {[
                 { key: 'all', label: 'Todos' },
+                { key: 'device1', label: '📱 Disp. 1' },
+                { key: 'device2', label: '📲 Disp. 2' },
                 { key: 'pending', label: '⚠️ Pendientes' },
                 { key: 'advisor', label: '👨‍💼 Asesor' },
                 { key: 'active', label: '🟢 Activas' },
@@ -1339,7 +1462,7 @@ export default function ConversationsPage() {
               ].map(f => (
                 <button
                   key={f.key}
-                  className={`conv-filter-btn ${filter === f.key ? 'active' : ''}`}
+                  className={`conv-filter-btn ${filter === f.key ? 'active' : ''} ${f.key === 'device1' ? 'device1' : ''} ${f.key === 'device2' ? 'device2' : ''}`}
                   onClick={() => setFilter(f.key)}
                 >{f.label}</button>
               ))}
@@ -1360,7 +1483,6 @@ export default function ConversationsPage() {
             ) : (
               filteredConvs.map(c => {
                 const name = convName(c);
-                const initials = getInitials(name !== 'Sin nombre' ? name : normalizePhoneNumber(c.phoneNumber));
                 const rawMsg = c.lastMessage && typeof c.lastMessage === 'object' ? (c.lastMessage.message || c.lastMessage.body || '') : (c.lastMessage || '');
                 const lastMsg = rawMsg
                   ? (rawMsg.length > 40 ? rawMsg.substring(0, 40) + '...' : rawMsg)
@@ -1373,7 +1495,12 @@ export default function ConversationsPage() {
                     className={`conv-item ${selectedUserId === c.userId ? 'active' : ''} ${c.status === 'pending_advisor' ? 'pending' : ''}`}
                     onClick={() => selectConversation(c.userId)}
                   >
-                    <div className="conv-avatar">{(c.isGroup || (c.userId && c.userId.endsWith('@g.us'))) ? '👥' : initials}</div>
+                    <ProfileAvatar 
+                      jid={c.userId} 
+                      name={name} 
+                      isGroup={c.isGroup} 
+                      onClick={(picUrl) => setLightboxImage(picUrl)} 
+                    />
                     <div className="conv-info">
                       <div className="conv-info-top">
                         <span className="conv-name">
@@ -1385,6 +1512,18 @@ export default function ConversationsPage() {
                       <div className="conv-info-bottom">
                         <span className="conv-last-msg">{lastMsg}</span>
                         {cStatus && <span className={`conv-status-badge ${cStatus.cls}`}>{cStatus.text}</span>}
+                        {/* ✅ DEVICE badge */}
+                        {c.sessionId && DEVICE_CONFIG[c.sessionId] && (
+                          <span
+                            className="conv-device-badge"
+                            style={{
+                              background: DEVICE_CONFIG[c.sessionId].bg,
+                              color: DEVICE_CONFIG[c.sessionId].color
+                            }}
+                          >
+                            {DEVICE_CONFIG[c.sessionId].emoji} {DEVICE_CONFIG[c.sessionId].label}
+                          </span>
+                        )}
                         <div className="conv-actions">
                           <button className="conv-action-btn edit" title="Editar" onClick={e => {
                             e.stopPropagation();
@@ -1433,7 +1572,7 @@ export default function ConversationsPage() {
           {!selectedUserId ? (
             <div className="chat-empty-state">
               <div className="empty-icon">💬</div>
-              <h2>NORBOY Chat</h2>
+              <h2>CONSTRUCTORA G&A Chat</h2>
               <p>Selecciona una conversación del panel izquierdo para ver los mensajes y responder en tiempo real.</p>
             </div>
           ) : (
@@ -1441,12 +1580,31 @@ export default function ConversationsPage() {
               {/* Chat Header */}
               <div className="chat-header">
                 <div className="chat-header-left">
-                  <div className="chat-header-avatar">
-                    {getInitials(convName(selectedConv || {}) !== 'Sin nombre' ? convName(selectedConv || {}) : normalizePhoneNumber(selectedConv?.phoneNumber || selectedUserId))}
+                  <div className="chat-header-avatar" style={{ overflow: 'hidden' }}>
+                    <ProfileAvatar 
+                      jid={selectedConv?.userId} 
+                      name={selectedConv?.registeredName || selectedConv?.whatsappName || normalizePhoneNumber(selectedConv?.phoneNumber)}
+                      isGroup={selectedConv?.isGroup}
+                      onClick={(picUrl) => setLightboxImage(picUrl)}
+                    />
                   </div>
                   <div className="chat-header-info">
                     <span className="chat-header-name">{convName(selectedConv || {})}</span>
-                    <span className="chat-header-phone">{formatPhoneDisplay(selectedConv?.phoneNumber || selectedUserId)}</span>
+                    <span className="chat-header-phone">
+                      {formatPhoneDisplay(selectedConv?.phoneNumber || selectedUserId)}
+                      {/* ✅ DEVICE: Show which device is handling this conversation */}
+                      {selectedConv?.sessionId && DEVICE_CONFIG[selectedConv.sessionId] && (
+                        <span
+                          className="chat-header-device-badge"
+                          style={{
+                            background: DEVICE_CONFIG[selectedConv.sessionId].bg,
+                            color: DEVICE_CONFIG[selectedConv.sessionId].color
+                          }}
+                        >
+                          {DEVICE_CONFIG[selectedConv.sessionId].emoji} {DEVICE_CONFIG[selectedConv.sessionId].label}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <span className="chat-header-status" style={{ background: status.bg, color: status.color }}>
                     {status.text}
@@ -1846,6 +2004,16 @@ export default function ConversationsPage() {
               <button className="modal-btn secondary" onClick={() => setModal(null)}>Cancelar</button>
               <button className="modal-btn primary" onClick={handleConfirmReset}>Resetear</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Profile Picture Lightbox ===== */}
+      {lightboxImage && (
+        <div className="profile-lightbox-overlay" onClick={() => setLightboxImage(null)}>
+          <div className="profile-lightbox-container" onClick={(e) => e.stopPropagation()}>
+            <button className="profile-lightbox-close" onClick={() => setLightboxImage(null)}>✕</button>
+            <img src={lightboxImage} alt="Foto de perfil" className="profile-lightbox-img" />
           </div>
         </div>
       )}

@@ -219,6 +219,15 @@ module.exports = {
   },
 
   /**
+   * Get profile picture URL
+   */
+  getProfilePictureUrl: (jid) => {
+    const provider = getProvider();
+    if (!provider || typeof provider.getProfilePictureUrl !== 'function') return Promise.resolve(null);
+    return provider.getProfilePictureUrl(jid);
+  },
+
+  /**
    * Send typing indicator
    */
   sendTyping: (to) => {

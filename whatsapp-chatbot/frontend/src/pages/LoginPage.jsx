@@ -29,8 +29,8 @@ export default function LoginPage() {
     <div className="login-overlay">
       <div className="login-card">
         <div className="login-logo">
-          <img src="/LOGO.jpeg" alt="NORBOY Logo" style={{ maxWidth: '100px', height: 'auto', marginBottom: '15px' }} />
-          <h2>NORBOY Chatbot</h2>
+          <img src="/Logo-PNG-gya-blanco.png" alt="CONSTRUCTORA G&A Logo" style={{ maxWidth: '100px', height: 'auto', marginBottom: '15px', background: '#37474F', borderRadius: '8px', padding: '10px' }} />
+          <h2>CONSTRUCTORA G&A Chatbot</h2>
           <p>Inicia sesión para continuar</p>
         </div>
 

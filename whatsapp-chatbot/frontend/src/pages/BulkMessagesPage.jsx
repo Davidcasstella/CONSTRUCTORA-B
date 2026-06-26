@@ -500,7 +500,7 @@ function CampaignTab({ liveProgress, setLiveProgress }) {
             style={{ 
               width: `${progress.percent || 0}%`, 
               height: '100%', 
-              background: isCancelled ? '#c62828' : isPaused ? '#f57c00' : 'linear-gradient(90deg, #25D366, #128C7E)',
+              background: isCancelled ? '#c62828' : isPaused ? '#f57c00' : 'linear-gradient(90deg, #FFB347, #FF8C00)',
               transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
             }} 
           />
@@ -769,7 +769,7 @@ function CampaignTab({ liveProgress, setLiveProgress }) {
               background: (selectedPhones.size > 0 && messageTemplate.trim())
                 ? dryRun
                   ? 'linear-gradient(135deg, #ff9800, #e65100)'
-                  : 'linear-gradient(135deg, #25D366, #128C7E)'
+                  : 'linear-gradient(135deg, #FFB347, #FF8C00)'
                 : '#ccc'
             }}
           >
@@ -1376,7 +1376,7 @@ function HistoryTab({ liveProgress, setLiveProgress }) {
             </span>
           </div>
           <div className="progress-bar-wrapper" style={{ height: 10, margin: '8px 0' }}>
-            <div className="progress-bar-fill" style={{ width: `${liveProgress.percent || 0}%`, background: liveProgress.status === 'paused' ? '#f57c00' : 'linear-gradient(90deg, #25D366, #128C7E)' }} />
+            <div className="progress-bar-fill" style={{ width: `${liveProgress.percent || 0}%`, background: liveProgress.status === 'paused' ? '#f57c00' : 'linear-gradient(90deg, #FFB347, #FF8C00)' }} />
           </div>
           <div className="progress-stats" style={{ marginTop: 8, justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 12 }}>
