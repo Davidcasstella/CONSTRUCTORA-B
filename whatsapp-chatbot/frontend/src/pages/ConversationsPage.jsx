@@ -11,6 +11,22 @@ import '../styles/chat-splitpane.css';
 // ===========================
 // UTILITY FUNCTIONS
 // ===========================
+/**
+ * Safely extract a plain string from any message value.
+ * Handles: plain strings, {type, text, useList} objects, arrays, null/undefined.
+ * Prevents "Objects are not valid as React child" crashes.
+ */
+function safeMsg(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return typeof value.text === 'string' ? value.text : '';
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => (typeof item === 'string' ? item : item?.text || '')).join('\n');
+  }
+  return '';
+}
 function normalizePhoneNumber(phone) {
   if (!phone) return '';
   let n = String(phone).trim().replace(/^whatsapp:/i, '');
@@ -1153,7 +1169,7 @@ export default function ConversationsPage() {
         </div>
       );
     } else if (msg.type === 'audio') {
-      content = <div className="message-text">🎤 {formatWhatsAppText(msg.message || 'Audio')}</div>;
+      content = <div className="message-text">🎤 {formatWhatsAppText(safeMsg(msg.message) || 'Audio')}</div>;
     } else if (msg.type === 'image' && resolvedUrl) {
       const imgStreamUrl = resolvedUrl.replace('/download/', '/stream/');
       content = (
@@ -1162,7 +1178,7 @@ export default function ConversationsPage() {
             <img src={imgStreamUrl} alt="Imagen" onClick={() => { setLightbox({ type: 'image', url: imgStreamUrl, downloadUrl: resolvedUrl }); setLightboxZoom(1); }} />
             <a className="media-download-btn" href="#" onClick={(e) => { e.preventDefault(); downloadFile(resolvedUrl, msg.fileName || 'imagen'); }} title="Descargar imagen">⬇️ Descargar</a>
           </div>
-          {msg.message && msg.message !== '[Imagen recibida]' && <div className="message-text">{formatWhatsAppText(msg.message)}</div>}
+          {msg.message && safeMsg(msg.message) !== '[Imagen recibida]' && <div className="message-text">{formatWhatsAppText(safeMsg(msg.message))}</div>}
         </>
       );
     } else if (msg.type === 'image') {
@@ -1175,7 +1191,7 @@ export default function ConversationsPage() {
             <div className="video-play-overlay">▶</div>
             <a className="media-download-btn" href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadFile(resolvedUrl, msg.fileName || 'video'); }} title="Descargar video">⬇️ Descargar</a>
           </div>
-          {msg.message && msg.message !== '[Video recibido]' && <div className="message-text">{formatWhatsAppText(msg.message)}</div>}
+          {msg.message && safeMsg(msg.message) !== '[Video recibido]' && <div className="message-text">{formatWhatsAppText(safeMsg(msg.message))}</div>}
         </>
       );
     } else if (msg.type === 'video') {
@@ -1191,13 +1207,13 @@ export default function ConversationsPage() {
               <a className="message-document-link" href={resolvedUrl} download>Descargar</a>
             </div>
           </div>
-          {msg.message && msg.message !== msg.fileName && msg.message !== '[Documento recibido]' && <div className="message-text">{formatWhatsAppText(msg.message)}</div>}
+          {msg.message && safeMsg(msg.message) !== msg.fileName && safeMsg(msg.message) !== '[Documento recibido]' && <div className="message-text">{formatWhatsAppText(safeMsg(msg.message))}</div>}
         </>
       );
     } else if (msg.type === 'document') {
       content = <div className="message-text">📄 {msg.message || 'Documento'}</div>;
     } else {
-      content = <div className="message-text">{formatWhatsAppText(msg.message || '')}</div>;
+      content = <div className="message-text">{formatWhatsAppText(safeMsg(msg.message))}</div>;
     }
 
     return (

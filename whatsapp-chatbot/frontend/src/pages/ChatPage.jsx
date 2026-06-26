@@ -6,6 +6,26 @@ import { normalizePhoneNumber, getInitials, formatRelativeTime } from '../utils/
 import { formatWhatsAppText } from '../utils/formatWhatsAppText';
 import '../styles/chat.css';
 
+/**
+ * Safely extract the display text from a message object.
+ * Handles plain strings, {type, text, useList} objects, and null/undefined.
+ */
+function getMsgText(msg) {
+  const raw = msg.message || msg.content || msg.body || msg.text;
+  if (!raw) return '';
+  if (typeof raw === 'string') return raw;
+  // Object with .text property (e.g. {type, text, useList})
+  if (typeof raw === 'object' && typeof raw.text === 'string') return raw.text;
+  // Array of content blocks — join their text
+  if (Array.isArray(raw)) {
+    return raw.map(item => (typeof item === 'string' ? item : item?.text || '')).join('\n');
+  }
+  // Fallback: stringify to avoid crash
+  try { return JSON.stringify(raw); } catch { return ''; }
+}
+
+
+
 export default function ChatPage() {
   const { socket } = useSocket();
   const [searchParams] = useSearchParams();
@@ -179,7 +199,7 @@ export default function ChatPage() {
                 <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No hay mensajes aún</div>
               ) : messages.map((msg, i) => (
                 <div key={msg.id || i} className={`chat-bubble ${msg.sender === 'user' || msg.direction === 'incoming' ? 'incoming' : 'outgoing'}`}>
-                  <div className="bubble-text">{formatWhatsAppText(msg.message || msg.content || msg.body || msg.text)}</div>
+                  <div className="bubble-text">{formatWhatsAppText(getMsgText(msg))}</div>
                   <div className="bubble-time">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</div>
                 </div>
               ))}

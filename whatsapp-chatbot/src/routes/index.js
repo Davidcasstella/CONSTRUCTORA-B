@@ -28,7 +28,9 @@ const knowledgeUploadService = require('../services/knowledge-upload.service');
 const stagesService = require('../services/stages.service');
 const metricsService = require('../services/metrics.service');
 const statusesService = require('../services/statuses.service');
-const baileysProvider = require('../providers/whatsapp/baileys.provider');
+const sessionManager = require('../providers/whatsapp/session-manager');
+// Getter for backward compat: returns session1 (the default Baileys instance)
+const getBaileysProvider = () => sessionManager.getDefaultSession();
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -1454,7 +1456,7 @@ async function _autoPublishToWhatsApp(status) {
     await new Promise(r => setTimeout(r, 1500));
 
     // Verify WhatsApp is connected before attempting publish
-    if (!baileysProvider.isReady || !baileysProvider.sock) {
+    if (!getBaileysProvider() || !getBaileysProvider().isReady || !getBaileysProvider().sock) {
       logger.warn(`⚠️ [WA-STATUS AUTO] WhatsApp no está conectado — el estado ${status.id} se guardó en el dashboard pero NO se publicó en WhatsApp`);
       return;
     }
@@ -1499,7 +1501,7 @@ async function _autoPublishToWhatsApp(status) {
     }
 
     logger.info(`📤 [WA-STATUS AUTO] Publicando estado ${status.id} (${status.type}) en WhatsApp...`);
-    const result = await baileysProvider.postWhatsAppStatus(waPayload);
+    const result = await getBaileysProvider().postWhatsAppStatus(waPayload);
     logger.info(`✅ [WA-STATUS AUTO] Estado id=${status.id} publicado automáticamente en WhatsApp`);
 
     // Persist the WhatsApp message key so we can revoke it later when the user deletes the status
@@ -1598,7 +1600,7 @@ router.delete('/statuses/:id', requireAuth, (req, res) => {
 
     // If this status was published to WhatsApp, revoke it there too (fire-and-forget)
     if (deleted?.waMessageKey?.id) {
-      baileysProvider.deleteWhatsAppStatus(deleted.waMessageKey).catch(err => {
+      getBaileysProvider().deleteWhatsAppStatus(deleted.waMessageKey).catch(err => {
         logger.warn(`⚠️ [WA-STATUS] No se pudo revocar en WhatsApp (se borró del dashboard igualmente): ${err.message}`);
       });
     } else {
@@ -1708,7 +1710,7 @@ router.post('/statuses/publish-to-whatsapp', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: `Tipo de estado no soportado: ${status.type}` });
     }
 
-    const result = await baileysProvider.postWhatsAppStatus(waPayload);
+    const result = await getBaileysProvider().postWhatsAppStatus(waPayload);
 
     // Save the WhatsApp message key so we can revoke the status when it's deleted from the dashboard
     if (result?.key?.id) {

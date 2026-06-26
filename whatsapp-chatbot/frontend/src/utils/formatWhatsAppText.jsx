@@ -7,7 +7,19 @@
  * @returns {React.ReactNode[]} Array of React elements
  */
 export function formatWhatsAppText(text) {
+  // Normalize: if text is an object with a .text property (e.g. {type, text, useList}),
+  // extract the string. This prevents "Objects are not valid as a React child" errors.
+  if (text !== null && typeof text === 'object') {
+    if (typeof text.text === 'string') {
+      text = text.text;
+    } else {
+      // Unknown object structure — render nothing
+      return '';
+    }
+  }
+
   if (!text || typeof text !== 'string') return text || '';
+
 
   // Split by newlines first, then process each line for bold
   const lines = text.split('\n');

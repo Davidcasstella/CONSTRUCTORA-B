@@ -14,7 +14,7 @@ process.stdout.write(`\n[BOOT] AWS_S3_BUCKET from process.env: ${process.env.AWS
  * Integra:
  * - Express (API)
  * - Socket.IO (comunicación en tiempo real)
- * - WhatsApp Web (conexión vía QR)
+ * - WhatsApp Web (conexión vía QR — MULTI-SESSION)
  * - OpenAI (respuestas inteligentes)
  */
 
@@ -28,27 +28,24 @@ const logger = require('./src/utils/logger');
 const messageProcessor = require('./src/services/message-processor.service');
 const advisorControlService = require('./src/services/advisor-control.service');
 
-// Seleccionar provider: baileys (recomendado) o web (whatsapp-web.js)
-const whatsappProvider = process.env.WHATSAPP_PROVIDER || 'baileys';
-const whatsappWeb = whatsappProvider === 'baileys'
-  ? require('./src/providers/whatsapp/baileys.provider')
-  : require('./src/providers/whatsapp/web.provider');
+// Multi-session manager (replaces single whatsappWeb singleton)
+const sessionManager = require('./src/providers/whatsapp/session-manager');
 
-logger.info(`Usando WhatsApp provider: ${whatsappProvider}`);
+logger.info(`Usando WhatsApp provider: baileys (multi-session)`);
 
 const chatService = require('./src/services/chat.service');
 const spamControlService = require('./src/services/spam-control.service');
 const numberControlService = require('./src/services/number-control.service');
 
-// ✅ Inyectar numberControlService en spam-control (evita dependencia circular)
+// Inject numberControlService into spam-control (avoid circular dependency)
 spamControlService.setNumberControlService(numberControlService);
 
-// ✅ NUEVO: Servicio de embeddings para inicialización automática
+// Embeddings service for automatic initialization
 const embeddingsService = require('./src/services/embeddings.service');
 
 const PORT = config.server.port;
 
-// Crear servidor HTTP
+// Create HTTP server
 const server = http.createServer(app);
 
 // Configure Socket.IO with dynamic CORS
@@ -67,40 +64,51 @@ const io = new Server(server, {
   }
 });
 
-// ✅ NUEVO: Inicializar messageProcessor con Socket.IO para emitir eventos de escalación
+// Initialize services with Socket.IO
 messageProcessor.setSocketIO(io);
-
-// ✅ NUEVO: Inicializar advisorControl con Socket.IO para emitir eventos de nuevos mensajes
 advisorControlService.setSocketIO(io);
 
-// ✅ NUEVO: Inicializar rutas con Socket.IO para emitir eventos de control manual
 const routes = require('./src/routes');
 if (routes.setSocketIO) {
   routes.setSocketIO(io);
 }
 
-// ✅ Inject WhatsApp client getter for bulk messaging
+// Inject WhatsApp client getter for bulk messaging (uses session1 by default)
 if (routes.setWhatsAppClientGetter) {
-  routes.setWhatsAppClientGetter(() => whatsappWeb.getClient());
+  routes.setWhatsAppClientGetter(() => {
+    const defaultSession = sessionManager.getDefaultSession();
+    return defaultSession ? defaultSession.getClient() : null;
+  });
 }
 
 // ===========================================
-// SOCKET.IO - COMUNICACIÓN EN TIEMPO REAL
+// SOCKET.IO - REAL-TIME COMMUNICATION
 // ===========================================
 io.on('connection', (socket) => {
   logger.debug('Cliente conectado a Socket.IO');
 
-  // Enviar estado actual
+  // Send current status of ALL sessions
   socket.on('get-status', () => {
-    const status = whatsappWeb.getStatus();
-    socket.emit('status', status);
+    const allStatuses = sessionManager.getAllStatuses();
+    // Emit multi-session status
+    socket.emit('all-sessions-status', allStatuses);
+    // Backward compat: also emit legacy 'status' for session1
+    const s1Status = allStatuses.session1;
+    if (s1Status) {
+      socket.emit('status', s1Status);
+    }
   });
 
-  // Enviar QR si existe
-  socket.on('get-qr', () => {
-    const qr = whatsappWeb.getQRCode();
+  // Send QR for a specific session
+  socket.on('get-qr', (data) => {
+    const sessionId = (data && data.sessionId) || 'session1';
+    const qr = sessionManager.getQRCode(sessionId);
     if (qr) {
-      socket.emit('qr', qr);
+      socket.emit('session:qr', { sessionId, qr });
+      // Backward compat for session1
+      if (sessionId === 'session1') {
+        socket.emit('qr', qr);
+      }
     }
   });
 
@@ -110,93 +118,109 @@ io.on('connection', (socket) => {
 });
 
 // ===========================================
-// WHATSAPP WEB - EVENTOS
+// SESSION MANAGER EVENTS → SOCKET.IO
 // ===========================================
 
-// When QR is generated
-whatsappWeb.on('qr', (qr) => {
-  logger.info('[WhatsApp] QR event relayed to dashboard');
-  io.emit('qr', qr);
+// QR generated for a session
+sessionManager.on('session:qr', ({ sessionId, qr }) => {
+  logger.info(`[Server] QR for ${sessionId} relayed to dashboard`);
+  io.emit('session:qr', { sessionId, qr });
+  // Backward compat: session1 → legacy 'qr' event
+  if (sessionId === 'session1') {
+    io.emit('qr', qr);
+  }
 });
 
-// When authenticated
-whatsappWeb.on('authenticated', () => {
-  logger.info('[WhatsApp] Authenticated event relayed to dashboard');
-  io.emit('authenticated');
+// Session authenticated
+sessionManager.on('session:authenticated', ({ sessionId }) => {
+  logger.info(`[Server] ${sessionId} authenticated, relayed to dashboard`);
+  io.emit('session:authenticated', { sessionId });
+  if (sessionId === 'session1') {
+    io.emit('authenticated');
+  }
 });
 
-// When ready
-whatsappWeb.on('ready', () => {
-  logger.info('[WhatsApp] Ready event relayed to dashboard');
-  const status = whatsappWeb.getStatus();
-  io.emit('ready', { miNumero: status.miNumero, miNombre: status.miNombre });
+// Session ready
+sessionManager.on('session:ready', ({ sessionId, miNumero, miNombre }) => {
+  logger.info(`[Server] ${sessionId} ready — number: ${miNumero}`);
+  io.emit('session:ready', { sessionId, miNumero, miNombre });
+  if (sessionId === 'session1') {
+    io.emit('ready', { miNumero, miNombre });
+  }
+
+  // Inject socket into media service for this session
+  const session = sessionManager.getSession(sessionId);
+  if (session && session.sock) {
+    const mediaStorageService = require('./src/services/media-storage.service');
+    mediaStorageService.setWhatsAppSocket(session.sock);
+  }
 });
 
-// When disconnected
-whatsappWeb.on('disconnected', (reason) => {
-  logger.warn(`[WhatsApp] Disconnected event relayed to dashboard: ${reason}`);
-  io.emit('disconnected', reason);
+// Session disconnected
+sessionManager.on('session:disconnected', ({ sessionId, reason }) => {
+  logger.warn(`[Server] ${sessionId} disconnected: ${reason}`);
+  io.emit('session:disconnected', { sessionId, reason });
+  if (sessionId === 'session1') {
+    io.emit('disconnected', reason);
+  }
 });
 
-// When session expires
-whatsappWeb.on('session-expired', (reason) => {
-  logger.warn(`[WhatsApp] Session expired event relayed to dashboard: ${reason}`);
-  io.emit('session-expired', reason);
+// Session expired
+sessionManager.on('session:expired', ({ sessionId, reason }) => {
+  logger.warn(`[Server] ${sessionId} session expired: ${reason}`);
+  io.emit('session:expired', { sessionId, reason });
+  if (sessionId === 'session1') {
+    io.emit('session-expired', reason);
+  }
 });
 
 // ===========================================
-// PROCESAR MENSAJES DE WHATSAPP
+// PROCESS WHATSAPP MESSAGES (MULTI-SESSION)
 // ===========================================
-whatsappWeb.on('message', async (message) => {
+sessionManager.on('session:message', async ({ sessionId, message }) => {
   try {
-    // ✅ LOG CRÍTICO AL RECIBIR MENSAJE
-    logger.info(`🔔 [SERVER] Evento 'message' recibido`);
+    logger.info(`🔔 [SERVER] Message received on ${sessionId}`);
     logger.info(`   message.from="${message.from}"`);
     logger.info(`   message.body="${message.body?.substring(0, 30)}"`);
     logger.info(`   message.type="${message.type}"`);
-    logger.info(`   message completo:`, JSON.stringify(message, null, 2));
 
     const from = message.from;
     const body = message.body;
     const type = message.type;
-    const pushName = message.pushName || null; // ✅ NUEVO: Nombre del contacto
+    const pushName = message.pushName || null;
 
-    // Detectar tipo de chat
-    // ✅ CORREGIDO: Baileys usa @s.whatsapp.net para chats normales
+    // Detect chat type
     const chatType = from.includes('@lid') ? 'LID' :
       from.includes('@g.us') ? 'Grupo' :
         from.includes('@s.whatsapp.net') ? 'Normal' :
           from.includes('@c.us') ? 'Normal' : 'Desconocido';
 
-    logger.info(`📩 Mensaje [${chatType}] de ${from}: ${body?.substring(0, 50)}...`);
+    logger.info(`📩 [${sessionId}] Mensaje [${chatType}] de ${from}: ${body?.substring(0, 50)}...`);
     logger.info(`📝 Tipo de mensaje: ${type} | fromMe: ${message.fromMe}`);
 
-    // ===========================================
-    // ✅ GRUPOS: Guardar mensaje para el dashboard pero NO activar bot
-    // ===========================================
-    // La IA NO debe responder en grupos de WhatsApp
-    // pero guardamos el mensaje para que el filtro "Grupos" lo muestre
-    if (from.includes('@g.us')) {
-      logger.info(`👥 Mensaje de GRUPO recibido — guardando para dashboard (sin bot)`);
-      logger.info(`   Grupo: ${from}, Remitente: ${pushName}, Texto: "${body?.substring(0, 50)}"`);
+    // Get the session's provider for sending replies
+    const sessionProvider = sessionManager.getSession(sessionId);
 
-      // Get the actual GROUP NAME from Baileys (not pushName which is the sender's name)
+    // ===========================================
+    // GROUPS: Save message for dashboard but do NOT activate bot
+    // ===========================================
+    if (from.includes('@g.us')) {
+      logger.info(`👥 [${sessionId}] Mensaje de GRUPO recibido — guardando para dashboard (sin bot)`);
+
+      // Get group name
       let groupName = null;
       try {
-        // 1. Try localChats first (fastest)
-        const chatData = whatsappWeb.localChats ? whatsappWeb.localChats.get(from) : null;
+        const chatData = sessionProvider && sessionProvider.localChats ? sessionProvider.localChats.get(from) : null;
         if (chatData && (chatData.name || chatData.subject)) {
           groupName = chatData.name || chatData.subject;
         }
-        // 2. Fallback: query Baileys groupMetadata (API call)
-        if (!groupName && whatsappWeb.sock) {
+        if (!groupName && sessionProvider && sessionProvider.sock) {
           try {
-            const metadata = await whatsappWeb.sock.groupMetadata(from);
+            const metadata = await sessionProvider.sock.groupMetadata(from);
             if (metadata && metadata.subject) {
               groupName = metadata.subject;
-              // Cache it in localChats for next time
-              if (whatsappWeb.localChats) {
-                whatsappWeb.localChats.set(from, { ...(chatData || {}), name: groupName, id: from });
+              if (sessionProvider.localChats) {
+                sessionProvider.localChats.set(from, { ...(chatData || {}), name: groupName, id: from });
               }
             }
           } catch (metaErr) {
@@ -207,26 +231,23 @@ whatsappWeb.on('message', async (message) => {
         logger.debug(`⚠️ Error obteniendo nombre del grupo: ${nameErr.message}`);
       }
 
-      // Final fallback: use the group ID number
       if (!groupName) {
         groupName = 'Grupo ' + from.replace('@g.us', '').slice(-6);
       }
-      logger.info(`   Nombre del grupo resuelto: "${groupName}"`);
 
-      // Create/update conversation with the GROUP NAME (not the sender pushName)
+      // Create/update conversation
       const conversationStateService = require('./src/services/conversation-state.service');
       const conv = conversationStateService.getOrCreateConversation(from, {
         whatsappName: groupName,
         realPhoneNumber: from.replace('@g.us', '')
       });
-      // Always update group name if we resolved a better one
       if (groupName && conv.whatsappName !== groupName) {
         conv.whatsappName = groupName;
         conv.whatsappNameUpdatedAt = Date.now();
       }
       conversationStateService.updateLastMessage(from, body || '[Multimedia]');
 
-      // Download media if present (images, videos, audios, documents)
+      // Download media if present
       let mediaData = null;
       const isMediaType = ['image', 'video', 'audio', 'document'].includes(type);
       if (isMediaType && message.hasMedia) {
@@ -234,23 +255,21 @@ whatsappWeb.on('message', async (message) => {
           const mediaStorageService = require('./src/services/media-storage.service');
           mediaData = await mediaStorageService.saveMediaFromMessage(message);
           if (mediaData) {
-            logger.info(`✅ [GRUPO] Media guardada: ${mediaData.mediaUrl} (${mediaData.fileName})`);
-          } else {
-            logger.warn(`⚠️ [GRUPO] saveMediaFromMessage retornó null para tipo=${type}`);
+            logger.info(`✅ [${sessionId}][GRUPO] Media guardada: ${mediaData.mediaUrl}`);
           }
         } catch (mediaError) {
-          logger.warn(`⚠️ [GRUPO] Error guardando media: ${mediaError.message}`);
+          logger.warn(`⚠️ [${sessionId}][GRUPO] Error guardando media: ${mediaError.message}`);
         }
       }
 
-      // Build display text for media messages
+      // Build display text
       const mediaLabel = type === 'audio' ? '[Audio recibido]' :
         type === 'image' ? '[Imagen recibida]' :
           type === 'video' ? '[Video recibido]' :
             type === 'document' ? '[Documento recibido]' : null;
       const displayText = body || mediaLabel || '[Multimedia]';
 
-      // Build message record for memory + socket
+      // Build message record
       const conversationRepository = require('./src/repositories/conversation.repository');
       const msgId = (message.id ? message.id : null) || ('group_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
       const msgRecord = {
@@ -264,7 +283,7 @@ whatsappWeb.on('message', async (message) => {
         direction: 'incoming'
       };
 
-      // Add media metadata to message record if available
+      // Add media metadata
       if (mediaData) {
         msgRecord.mediaUrl = mediaData.mediaUrl || `/api/media/download/${msgId}`;
         msgRecord.fileName = mediaData.fileName || null;
@@ -272,7 +291,6 @@ whatsappWeb.on('message', async (message) => {
         msgRecord.fileSize = mediaData.fileSize || null;
         msgRecord.s3Key = mediaData.s3Key || null;
       } else if (isMediaType) {
-        // Fallback: use proxy URL for on-demand media recovery
         msgRecord.mediaUrl = `/api/media/download/${msgId}`;
       }
 
@@ -282,7 +300,7 @@ whatsappWeb.on('message', async (message) => {
       if (conv.messages.length > 50) conv.messages = conv.messages.slice(-50);
       conv.lastInteraction = Date.now();
 
-      // Save to DynamoDB (separate try-catch so Socket always fires)
+      // Save to DynamoDB
       try {
         const { Message } = require('./src/models/message.model');
         const dynamoMessage = new Message({
@@ -303,7 +321,7 @@ whatsappWeb.on('message', async (message) => {
           },
           from: from,
           status: 'delivered',
-          metadata: { sender: 'user', senderName: pushName || 'Participante', isGroup: true },
+          metadata: { sender: 'user', senderName: pushName || 'Participante', isGroup: true, sessionId },
           createdAt: new Date(),
           updatedAt: new Date()
         });
@@ -312,337 +330,215 @@ whatsappWeb.on('message', async (message) => {
         logger.warn(`⚠️ Error guardando mensaje de grupo en DynamoDB: ${dbErr.message}`);
       }
 
-      // Emit Socket.IO 'new-message' event (always fires for real-time dashboard)
+      // Emit Socket.IO event
       try {
         io.emit('new-message', {
           userId: from,
           phoneNumber: from.replace('@g.us', ''),
           whatsappName: groupName,
           message: msgRecord,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          sessionId
         });
-        logger.info(`📡 [SOCKET] Evento 'new-message' emitido para grupo ${from}`);
       } catch (socketErr) {
         logger.warn(`⚠️ Error emitiendo socket para grupo: ${socketErr.message}`);
       }
 
       return; // Do NOT activate bot logic for groups
     }
+
     if (pushName) {
       logger.info(`👤 Nombre del contacto: ${pushName}`);
     }
 
-    // ✅ CORREGIDO: El nombre se guarda al crear/obtener la conversación
-    // dentro de processIncomingMessage, no aquí (antes fallaba porque
-    // la conversación aún no existía)
-
-    // ===========================================
-    // IGNORAR MENSAJES VACÍOS (eventos históricos de Baileys)
-    // ✅ Solo para mensajes de texto - multimedia (audio, imagen, etc.) puede tener body vacío
-    // ===========================================
+    // Ignore empty text messages (historical Baileys events)
     if ((type === 'chat' || type === 'conversation') && (!body || body.trim() === '')) {
-      logger.debug('⏭️ Mensaje de texto vacío, ignorando (probablemente evento histórico)');
+      logger.debug('⏭️ Mensaje de texto vacío, ignorando');
       return;
     }
 
     // ===========================================
-    // MANEJO DE RESPUESTAS A BOTONES (CONSENTIMIENTO)
+    // BUTTON RESPONSE HANDLING (CONSENT)
     // ===========================================
     if (type === 'button_response' || message?.message?.buttonsResponseMessage) {
       const selectedButtonId = message?.message?.buttonsResponseMessage?.selectedButtonId;
-
       logger.info(`🔘 Botón presionado: ${selectedButtonId}`);
 
       if (selectedButtonId === 'consent_accept') {
         chatService.setConsentResponse(from, true);
-        const client = whatsappWeb.getClient();
-
-        // Enviar confirmación de aceptación
-        await client.sendMessage(from, {
-          text: '✅ Gracias por aceptar. Procesando su consulta...'
-        });
+        const client = sessionProvider.getClient();
+        await client.sendMessage(from, { text: '✅ Gracias por aceptar. Procesando su consulta...' });
         logger.info(`✅ Usuario ${from} aceptó el consentimiento`);
 
-        // Verificar si hay un mensaje pendiente y responderlo
         const pendingMessage = chatService.getPendingMessage(from);
         if (pendingMessage) {
-          logger.info(`📝 Procesando mensaje pendiente: "${pendingMessage.substring(0, 50)}..."`);
           chatService.clearPendingMessage(from);
-
-          // Generar respuesta para el mensaje pendiente
           const response = await chatService.generateTextResponse(from, pendingMessage, { skipConsent: true });
-
-          // Procesar respuesta (puede ser string, objeto de escalación, o null)
           if (response) {
-            let responseText = '';
-
-            // Si es un string, usarlo directamente
-            if (typeof response === 'string') {
-              responseText = response;
-            }
-            // Si es un objeto con propiedad 'text' (escalamiento u otro)
-            else if (response.text) {
-              responseText = response.text;
-            }
-
-            // Enviar la respuesta si hay texto
+            let responseText = typeof response === 'string' ? response : response.text || '';
             if (responseText) {
               await client.sendMessage(from, { text: responseText });
-              logger.info(`✅ Respuesta enviada para mensaje pendiente: "${responseText.substring(0, 50)}..."`);
-
               io.emit('bot-response', {
                 to: from,
                 response: `[Aceptó consentimiento y respondió]: ${responseText.substring(0, 50)}...`,
-                chatType
+                chatType, sessionId
               });
-            } else {
-              logger.warn(`⚠️ Respuesta vacía para mensaje pendiente`);
             }
-          } else {
-            logger.warn(`⚠️ Sin respuesta para mensaje pendiente`);
           }
         } else {
-          await client.sendMessage(from, {
-            text: 'Sumercé, en qué le podemos ayudar?'
-          });
-
-          io.emit('bot-response', {
-            to: from,
-            response: 'Aceptó consentimiento',
-            chatType
-          });
+          await client.sendMessage(from, { text: 'Sumercé, en qué le podemos ayudar?' });
+          io.emit('bot-response', { to: from, response: 'Aceptó consentimiento', chatType, sessionId });
         }
       } else if (selectedButtonId === 'consent_reject') {
         chatService.setConsentResponse(from, false);
-        const client = whatsappWeb.getClient();
+        const client = sessionProvider.getClient();
         await client.sendMessage(from, {
           text: 'Entendido. Sin el consentimiento no podemos continuar con la conversación. Si cambia de opinión, puede iniciar una nueva conversación.'
         });
         logger.info(`❌ Usuario ${from} rechazó el consentimiento`);
       }
 
-      // Notificar a la interfaz web
       io.emit('bot-response', {
         to: from,
         response: selectedButtonId === 'consent_accept' ? 'Aceptó consentimiento' : 'Rechazó consentimiento',
-        chatType
+        chatType, sessionId
       });
-
       return;
     }
 
     // ===========================================
-    // MANEJO DE RESPUESTAS DE TEXTO (CONSENTIMIENTO)
+    // TEXT CONSENT RESPONSE HANDLING
     // ===========================================
-    // Verificar si el usuario está respondiendo al consentimiento con texto
     const hasPendingMessage = chatService.getPendingMessage(from);
     const interactionCount = chatService.getUserInteractionCount(from);
     const hasConsent = chatService.hasUserConsent(from);
 
-    // Si hay mensaje pendiente (esperando respuesta de consentimiento) y el texto es una respuesta
     if (hasPendingMessage && !hasConsent && interactionCount >= 2) {
       const normalizedBody = body.toLowerCase().trim();
-      const positiveResponses = ['1', 'aceptar', 'ok', 'si', 'sí', 'yes', 'acepto', 'acepto'];
+      const positiveResponses = ['1', 'aceptar', 'ok', 'si', 'sí', 'yes', 'acepto'];
       const negativeResponses = ['2', 'no aceptar', 'no', 'rechazar', 'rechazo'];
-
-      logger.info(`🔍 Detectada posible respuesta de consentimiento: "${body}"`);
 
       let consentResponse = null;
 
       if (positiveResponses.includes(normalizedBody) || positiveResponses.some(r => normalizedBody.includes(r))) {
         consentResponse = 'accept';
-        logger.info(`✅ Usuario ${from} aceptó el consentimiento (texto: "${body}")`);
       } else if (negativeResponses.includes(normalizedBody) || negativeResponses.some(r => normalizedBody.includes(r))) {
         consentResponse = 'reject';
-        logger.info(`❌ Usuario ${from} rechazó el consentimiento (texto: "${body}")`);
       }
 
-      // Si se detectó una respuesta de consentimiento
       if (consentResponse) {
-        const client = whatsappWeb.getClient();
+        const client = sessionProvider.getClient();
 
         if (consentResponse === 'accept') {
           chatService.setConsentResponse(from, true);
+          await client.sendMessage(from, { text: '✅ Gracias por aceptar. Procesando su consulta...' });
 
-          // Enviar confirmación de aceptación
-          await client.sendMessage(from, {
-            text: '✅ Gracias por aceptar. Procesando su consulta...'
-          });
-
-          // Verificar si hay un mensaje pendiente y responderlo
           const pendingMessage = chatService.getPendingMessage(from);
           if (pendingMessage) {
-            logger.info(`📝 Procesando mensaje pendiente: "${pendingMessage.substring(0, 50)}..."`);
             chatService.clearPendingMessage(from);
-
-            // Generar respuesta para el mensaje pendiente con skipConsent
             const response = await chatService.generateTextResponse(from, pendingMessage, { skipConsent: true });
-
-            // Procesar respuesta (puede ser string, objeto de escalación, o null)
             if (response) {
-              let responseText = '';
-
-              // Si es un string, usarlo directamente
-              if (typeof response === 'string') {
-                responseText = response;
-              }
-              // Si es un objeto con propiedad 'text' (escalamiento u otro)
-              else if (response.text) {
-                responseText = response.text;
-              }
-
-              // Enviar la respuesta si hay texto
+              let responseText = typeof response === 'string' ? response : response.text || '';
               if (responseText) {
                 await client.sendMessage(from, { text: responseText });
-                logger.info(`✅ Respuesta enviada para mensaje pendiente: "${responseText.substring(0, 50)}..."`);
-
                 io.emit('bot-response', {
                   to: from,
                   response: `[Aceptó consentimiento y respondió]: ${responseText.substring(0, 50)}...`,
-                  chatType
+                  chatType, sessionId
                 });
-              } else {
-                logger.warn(`⚠️ Respuesta vacía para mensaje pendiente`);
               }
-            } else {
-              logger.warn(`⚠️ Sin respuesta para mensaje pendiente`);
             }
           } else {
-            await client.sendMessage(from, {
-              text: 'Sumercé, en qué le podemos ayudar?'
-            });
-
-            io.emit('bot-response', {
-              to: from,
-              response: 'Aceptó consentimiento',
-              chatType
-            });
+            await client.sendMessage(from, { text: 'Sumercé, en qué le podemos ayudar?' });
+            io.emit('bot-response', { to: from, response: 'Aceptó consentimiento', chatType, sessionId });
           }
         } else {
-          // Reject
           chatService.setConsentResponse(from, false);
           await client.sendMessage(from, {
             text: 'Entendido. Sin el consentimiento no podemos continuar con la conversación. Si cambia de opinión, puede iniciar una nueva conversación.'
           });
-
-          io.emit('bot-response', {
-            to: from,
-            response: 'Rechazó consentimiento',
-            chatType
-          });
+          io.emit('bot-response', { to: from, response: 'Rechazó consentimiento', chatType, sessionId });
         }
-
-        return; // No procesar más este mensaje
+        return;
       }
     }
 
-    // Notificar a la interfaz web
-    io.emit('message-received', { from, body, type, chatType });
+    // Notify dashboard
+    io.emit('message-received', { from, body, type, chatType, sessionId });
 
     // ===========================================
-    // NUEVO: Usar messageProcessor para todos los mensajes
+    // PROCESS MESSAGE (text or multimedia)
     // ===========================================
-    // Esto implementa todos los puntos de control:
-    // - Punto 1: Verifica bot_active
-    // - Punto 2: Desactivación por asesor
-    // - Punto 3: Fallback obligatorio
-    // - Punto 4: Control de horario (4:30 PM)
-    // - Punto 5: Flujo general
-    // - Y GUARDA LOS MENSAJES en conversation.messages
-
     if (type === 'chat' || type === 'conversation') {
-      logger.info('🔄 Procesando mensaje de texto con messageProcessor...');
+      logger.info(`🔄 [${sessionId}] Procesando mensaje de texto con messageProcessor...`);
 
-      // Usar messageProcessor que ya maneja todo:
-      // - consentimiento
-      // - escalación
-      // - horario
-      // - GUARDADO DE MENSAJES
-      // ✅ CORREGIDO: Pasar pushName para que se guarde el nombre del contacto
-      // ✅ CORREGIDO: Pasar pushName y whatsappMessageId (ID real)
       const response = await messageProcessor.processIncomingMessage(from, body, {
         pushName,
         whatsappMessageId: message.id
       });
 
-      // Si response es null, no se debe enviar nada (ya se envió internamente)
       if (!response) {
         logger.debug('⏭️ Sin respuesta externa (ya procesada internamente)');
         return;
       }
 
-      // Si hay respuesta, enviarla
       logger.info(`✅ Respuesta generada: ${response.substring(0, 50)}...`);
-      logger.info(`📤 Enviando respuesta a ${from} [${chatType}]...`);
 
       try {
-        const client = whatsappWeb.getClient();
+        const client = sessionProvider.getClient();
         await client.sendMessage(from, { text: response });
-        logger.info(`✅ Respuesta enviada a ${from} [${chatType}]`);
+        logger.info(`✅ [${sessionId}] Respuesta enviada a ${from}`);
       } catch (sendError) {
         logger.error(`❌ Error enviando respuesta: ${sendError.message}`);
         throw sendError;
       }
 
-      // Notificar a la interfaz web
-      io.emit('bot-response', { to: from, response: response, chatType });
+      io.emit('bot-response', { to: from, response, chatType, sessionId });
 
-      // ===========================================
-      // ✅ NUEVO: Procesar mensajes de audio, imagen, documento y video
-      // ===========================================
     } else if (type === 'audio' || type === 'image' || type === 'document' || type === 'video') {
-      logger.info(`🔄 Procesando mensaje multimedia (${type}) con messageProcessor...`);
+      logger.info(`🔄 [${sessionId}] Procesando mensaje multimedia (${type})...`);
 
-      // ✅ NUEVO: Persistir archivo multimedia en disco
+      // Persist multimedia file to disk/S3
       let mediaData = null;
       try {
         const mediaStorageService = require('./src/services/media-storage.service');
         mediaData = await mediaStorageService.saveMediaFromMessage(message);
         if (mediaData) {
           logger.info(`✅ Media guardada: ${mediaData.mediaUrl} (${mediaData.fileName})`);
-        } else {
-          logger.warn(`⚠️ [SERVER] saveMediaFromMessage retornó null para tipo=${type}, messageId=${message.id || 'unknown'}`);
-          logger.warn(`   hasMedia=${message.hasMedia}, has_original=${!!message._original}, has_message=${!!message.message}`);
         }
       } catch (mediaError) {
         logger.warn(`⚠️ Error guardando media (no crítico): ${mediaError.message}`);
-        logger.warn(`   Stack: ${mediaError.stack?.split('\n')[1] || 'N/A'}`);
       }
 
-      // Para mensajes multimedia, pasar el tipo y datos del mensaje original
       const caption = message.body || '';
       const mediaLabel = type === 'audio' ? '[Audio recibido]' :
         type === 'image' ? '[Imagen recibida]' :
-          type === 'document' ? '[Documento recibido]' :
-            '[Video recibido]';
+          type === 'document' ? '[Documento recibido]' : '[Video recibido]';
       const mediaBody = caption || mediaLabel;
 
       const response = await messageProcessor.processIncomingMessage(from, mediaBody, {
         pushName,
         messageType: type,
         originalMessage: message,
-        mediaData: mediaData,  // ✅ Pasar metadata de media
-        whatsappMessageId: message.id // ✅ Pasar ID real
+        mediaData: mediaData,
+        whatsappMessageId: message.id
       });
 
       if (!response) {
-        logger.debug('⏭️ Sin respuesta externa para multimedia (ya procesada internamente)');
+        logger.debug('⏭️ Sin respuesta externa para multimedia');
         return;
       }
 
-      // Si hay respuesta, enviarla
-      logger.info(`✅ Respuesta generada para ${type}: ${response.substring(0, 50)}...`);
-
       try {
-        const client = whatsappWeb.getClient();
+        const client = sessionProvider.getClient();
         await client.sendMessage(from, { text: response });
-        logger.info(`✅ Respuesta enviada a ${from} [${chatType}]`);
+        logger.info(`✅ [${sessionId}] Respuesta enviada a ${from}`);
       } catch (sendError) {
         logger.error(`❌ Error enviando respuesta: ${sendError.message}`);
         throw sendError;
       }
 
-      io.emit('bot-response', { to: from, response: response, chatType });
+      io.emit('bot-response', { to: from, response, chatType, sessionId });
 
     } else {
       logger.warn(`⚠️ Tipo de mensaje no soportado: ${type}`);
@@ -652,18 +548,15 @@ whatsappWeb.on('message', async (message) => {
     logger.error('❌ Error procesando mensaje:', error);
     logger.error('Stack trace:', error.stack);
 
-    // Enviar mensaje de error al usuario (si tenemos el número)
     try {
-      const client = whatsappWeb.getClient();
+      const sessionProvider = sessionManager.getSession(sessionId);
+      const client = sessionProvider ? sessionProvider.getClient() : null;
+      const userPhone = message?.from || message?.key?.remoteJid;
 
-      // Obtener el número de teléfono del mensaje
-      const userPhone = from || message?.key?.remoteJid;
-
-      if (userPhone) {
+      if (client && userPhone) {
         await client.sendMessage(userPhone, {
           text: 'Disculpa, tuve un problema procesando tu mensaje. Por favor intenta de nuevo.'
         });
-        logger.info(`Mensaje de error enviado a ${userPhone}`);
       }
     } catch (e) {
       logger.error('❌❌ Error enviando mensaje de error:', e);
@@ -672,199 +565,119 @@ whatsappWeb.on('message', async (message) => {
 });
 
 // ===========================================
-// CAPTURAR MENSAJES ENVIADOS DESDE EL CELULAR
+// CAPTURE OUTGOING MESSAGES (FROM PHONE)
 // ===========================================
-// Cuando el asesor responde directamente desde el celular físico (no desde el dashboard),
-// Baileys emite 'outgoing-message'. Lo guardamos como 'advisor' para mantener el historial
-// completo de la conversación sin activar ninguna lógica de bot.
-whatsappWeb.on('outgoing-message', async (outgoing) => {
+sessionManager.on('session:outgoing', async ({ sessionId, to, body, id, mediaType, originalMsg }) => {
   try {
-    const { to, body, id, mediaType, originalMsg } = outgoing;
-    logger.info(`📤 [SERVER] Guardando mensaje enviado desde celular → ${to}: "${body.substring(0, 50)}" (tipo: ${mediaType})`);
+    logger.info(`📤 [${sessionId}] Guardando mensaje enviado desde celular → ${to}: "${body.substring(0, 50)}"`);
 
-    // If the advisor sent multimedia from the phone, persist the file to disk/S3
+    // Persist multimedia from phone
     let mediaData = null;
     if (originalMsg && mediaType !== 'text') {
       try {
         const mediaStorageService = require('./src/services/media-storage.service');
         mediaData = await mediaStorageService.saveMediaFromMessage(originalMsg);
         if (mediaData) {
-          logger.info(`✅ [SERVER] Media saliente guardada: ${mediaData.mediaUrl} (${mediaData.fileName})`);
+          logger.info(`✅ [${sessionId}] Media saliente guardada: ${mediaData.mediaUrl}`);
         }
       } catch (mediaError) {
-        logger.warn(`⚠️ [SERVER] Error guardando media saliente (no crítico): ${mediaError.message}`);
+        logger.warn(`⚠️ [${sessionId}] Error guardando media saliente: ${mediaError.message}`);
       }
     }
 
     await messageProcessor.saveOutgoingMessage(to, body, id, mediaData);
-
-    logger.info(`✅ [SERVER] Mensaje desde celular guardado correctamente`);
+    logger.info(`✅ [${sessionId}] Mensaje desde celular guardado correctamente`);
   } catch (err) {
-    logger.error(`❌ [SERVER] Error guardando mensaje desde celular: ${err.message}`);
+    logger.error(`❌ [${sessionId}] Error guardando mensaje desde celular: ${err.message}`);
   }
 });
 
 // ===========================================
-// ENDPOINTS DE SESIÓN (Cerrar/Limpiar)
+// SESSION ENDPOINTS (Logout/Clear per session)
 // ===========================================
 
-// Cerrar sesión actual y reconectar
-app.post('/logout', requireAuth, async (_req, res) => {
+// Logout a specific session
+app.post('/logout', requireAuth, async (req, res) => {
   try {
-    logger.info('Solicitando cierre de sesión...');
+    const sessionId = req.body.sessionId || req.query.sessionId || 'session1';
+    logger.info(`Solicitando cierre de sesión para ${sessionId}...`);
 
-    if (whatsappWeb.sock) {
-      try {
-        // Remove listeners to prevent reconnect loops during logout
-        whatsappWeb.sock.ev.removeAllListeners();
-        await whatsappWeb.sock.logout();
-        logger.info('✅ Sesión cerrada correctamente');
-      } catch (e) {
-        logger.warn('Error en logout:', e.message);
-        try { whatsappWeb.sock.end(undefined); } catch (e2) { /* ignore */ }
-      }
-      whatsappWeb.sock = null;
+    await sessionManager.logoutSession(sessionId);
+    io.emit('session:disconnected', { sessionId, reason: 'Sesión cerrada manualmente' });
+    if (sessionId === 'session1') {
+      io.emit('disconnected', 'Sesión cerrada manualmente');
     }
 
-    // Reset all state
-    if (whatsappWeb.reconnectTimeout) {
-      clearTimeout(whatsappWeb.reconnectTimeout);
-      whatsappWeb.reconnectTimeout = null;
-    }
-    if (whatsappWeb.qrTimeout) {
-      clearTimeout(whatsappWeb.qrTimeout);
-      whatsappWeb.qrTimeout = null;
-    }
-    whatsappWeb.isReady = false;
-    whatsappWeb.isConnecting = false;
-    whatsappWeb.status = 'disconnected';
-    whatsappWeb.qrCode = null;
-    whatsappWeb.qrEmitted = false;
-    whatsappWeb.miNumero = null;
-    whatsappWeb.miLid = null;
-    whatsappWeb.miNombre = null;
-    if (typeof whatsappWeb.resetAuthFailures === 'function') {
-      whatsappWeb.resetAuthFailures();
-    }
-
-    io.emit('disconnected', 'Sesión cerrada manualmente');
-
-    // Reinicializar después de 2 segundos
+    // Reinitialize after 2 seconds
     setTimeout(async () => {
       try {
-        logger.info('🔄 Reinicializando WhatsApp después de logout...');
-        await whatsappWeb.initialize();
+        logger.info(`🔄 Reinicializando ${sessionId} después de logout...`);
+        await sessionManager.reinitializeSession(sessionId);
       } catch (error) {
-        logger.error('Error reinicializando:', error);
+        logger.error(`Error reinicializando ${sessionId}:`, error);
       }
     }, 2000);
 
     res.json({
       success: true,
-      message: 'Sesión cerrada. Reconectando automáticamente...'
+      message: `Sesión ${sessionId} cerrada. Reconectando automáticamente...`
     });
   } catch (error) {
     logger.error('Error cerrando sesión:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Limpiar sesión y generar nuevo QR
-app.post('/clear-session', requireAuth, async (_req, res) => {
+// Clear session and generate new QR
+app.post('/clear-session', requireAuth, async (req, res) => {
   try {
-    logger.info('Limpiando sesión y generando nuevo QR...');
-    const fs = require('fs');
-    const path = require('path');
+    const sessionId = req.body.sessionId || req.query.sessionId || 'session1';
+    logger.info(`Limpiando sesión ${sessionId} y generando nuevo QR...`);
 
-    // 1. Properly disconnect the WhatsApp socket
-    //    Use sock.logout() here because this IS an explicit user action
-    if (whatsappWeb.sock) {
-      try {
-        // Remove all listeners first to prevent reconnect loops
-        whatsappWeb.sock.ev.removeAllListeners();
-        await whatsappWeb.sock.logout();
-        logger.info('✅ WhatsApp logout exitoso');
-      } catch (e) {
-        logger.warn('Error en logout (continuando limpieza):', e.message);
-        // Try to at least close the socket
-        try {
-          whatsappWeb.sock.end(undefined);
-        } catch (e2) {
-          logger.warn('Error cerrando socket:', e2.message);
-        }
-      }
-      whatsappWeb.sock = null;
+    await sessionManager.clearSession(sessionId);
+    io.emit('session:disconnected', { sessionId, reason: 'Sesión limpiada manualmente' });
+    if (sessionId === 'session1') {
+      io.emit('disconnected', 'Sesión limpiada manualmente');
     }
 
-    // 2. Cancel any pending reconnect/QR timers
-    if (whatsappWeb.reconnectTimeout) {
-      clearTimeout(whatsappWeb.reconnectTimeout);
-      whatsappWeb.reconnectTimeout = null;
-    }
-    if (whatsappWeb.qrTimeout) {
-      clearTimeout(whatsappWeb.qrTimeout);
-      whatsappWeb.qrTimeout = null;
-    }
-
-    // 3. Reset ALL internal state so initialize() won't skip
-    whatsappWeb.isReady = false;
-    whatsappWeb.isConnecting = false;
-    whatsappWeb.status = 'disconnected';
-    whatsappWeb.qrCode = null;
-    whatsappWeb.qrEmitted = false;
-    whatsappWeb.miNumero = null;
-    whatsappWeb.miLid = null;
-    whatsappWeb.miNombre = null;
-
-    // 4. Reset auth failure counter
-    if (typeof whatsappWeb.resetAuthFailures === 'function') {
-      whatsappWeb.resetAuthFailures();
-    }
-
-    // 5. Delete session files
-    const authPath = path.join(process.cwd(), 'baileys_auth');
-    if (fs.existsSync(authPath)) {
-      fs.rmSync(authPath, { recursive: true, force: true });
-      logger.info('✅ Sesión eliminada de baileys_auth/');
-    }
-
-    // 6. Notify dashboard immediately
-    io.emit('disconnected', 'Sesión limpiada manualmente');
-
-    // 7. Reinitialize after a delay to generate new QR
+    // Reinitialize after 3 seconds
     setTimeout(async () => {
       try {
-        logger.info('🔄 Reinicializando WhatsApp para nuevo QR...');
-        await whatsappWeb.initialize();
+        logger.info(`🔄 Reinicializando ${sessionId} para nuevo QR...`);
+        await sessionManager.reinitializeSession(sessionId);
       } catch (error) {
-        logger.error('Error reinicializando:', error);
+        logger.error(`Error reinicializando ${sessionId}:`, error);
       }
     }, 3000);
 
     res.json({
       success: true,
-      message: 'Sesión limpiada. Generando nuevo QR...'
+      message: `Sesión ${sessionId} limpiada. Generando nuevo QR...`
     });
   } catch (error) {
     logger.error('Error limpiando sesión:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get status of all sessions (REST API)
+app.get('/api/sessions/status', requireAuth, (_req, res) => {
+  try {
+    const allStatuses = sessionManager.getAllStatuses();
+    res.json({ success: true, sessions: allStatuses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // ===========================================
-// INICIAR SERVIDOR
+// START SERVER
 // ===========================================
 server.listen(PORT, async () => {
   logger.info(`🚀 Servidor iniciado en http://localhost:${PORT}`);
   logger.info(`📱 Abre http://localhost:${PORT} para conectar WhatsApp`);
 
-  // ✅ Rebuild media index from DynamoDB for cross-environment visibility
+  // Rebuild media index from DynamoDB
   try {
     const mediaStorageService = require('./src/services/media-storage.service');
     const rebuilt = await mediaStorageService.rebuildIndexFromDB();
@@ -873,39 +686,31 @@ server.listen(PORT, async () => {
     logger.warn(`⚠️ Error rebuilding media index: ${err.message}`);
   }
 
-  // ✅ NUEVO: Inicializar embeddings automáticamente en background
+  // Initialize embeddings in background
   initializeEmbeddingsInBackground();
 
-  // Inicializar WhatsApp Web
+  // Initialize and connect all WhatsApp sessions
   try {
-    await whatsappWeb.initialize();
+    await sessionManager.initialize();
+    await sessionManager.connectAll();
   } catch (error) {
-    logger.error('Error inicializando WhatsApp:', error);
+    logger.error('Error inicializando sesiones de WhatsApp:', error);
   }
 });
 
 // ===========================================
-// ✅ NUEVO: INICIALIZACIÓN DE EMBEDDINGS EN BACKGROUND
+// EMBEDDINGS BACKGROUND INITIALIZATION
 // ===========================================
 
-/**
- * Inicializa los embeddings de todos los documentos en background
- * No bloquea el inicio del servidor, se ejecuta en segundo plano
- */
 async function initializeEmbeddingsInBackground() {
   try {
-    // Solo inicializar si USE_EMBEDDINGS no es 'false'
     if (process.env.USE_EMBEDDINGS !== 'false') {
       logger.info('🧠 Inicializando embeddings en background...');
       logger.info('   (El bot ya está funcionando, esto se procesa en segundo plano)');
 
-      // Cargar chunks en memoria (lee JSON existentes, no genera embeddings nuevos)
       await embeddingsService.loadAllChunks();
-
-      // ✅ Pre-calentar modelo de embeddings para eliminar latencia en primera consulta
       await embeddingsService.warmup();
 
-      // Obtener estadísticas actuales
       const stats = embeddingsService.getEmbeddingStats();
       const totalChunks = stats.totalChunks;
       const withEmbeddings = stats.withEmbeddings;
@@ -916,12 +721,9 @@ async function initializeEmbeddingsInBackground() {
       logger.info(`   ✅ Con embeddings: ${withEmbeddings} (${totalChunks > 0 ? ((withEmbeddings / totalChunks) * 100).toFixed(1) : 0}%)`);
       logger.info(`   ❌ Sin embeddings: ${withoutEmbeddings} (${totalChunks > 0 ? ((withoutEmbeddings / totalChunks) * 100).toFixed(1) : 0}%)`);
 
-      // Si hay chunks sin embeddings, generarlos
       if (withoutEmbeddings > 0) {
         logger.info(`🔄 Generando ${withoutEmbeddings} embeddings faltantes en background...`);
-        logger.info(`   (El bot sigue funcionando normalmente con keyword search mientras tanto)`);
 
-        // Generar embeddings faltantes (no bloquea el inicio)
         const knowledgeUploadService = require('./src/services/knowledge-upload.service');
         const files = knowledgeUploadService.getUploadedFiles();
 
@@ -933,25 +735,19 @@ async function initializeEmbeddingsInBackground() {
             const data = await knowledgeUploadService.getFileData(file);
 
             if (data && data.chunks) {
-              // Verificar cuántos chunks necesitan embeddings
               const chunksNeedingEmbeddings = data.chunks.filter(c => !c.embeddingGenerated && !c.embedding);
 
               if (chunksNeedingEmbeddings.length > 0) {
-                // Generar embeddings para los chunks que faltan
                 const chunksWithEmbeddings = await embeddingsService.ensureEmbeddings(data.chunks);
-
-                // Guardar si se generaron nuevos embeddings
                 await knowledgeUploadService.saveFileData(file, {
                   ...data,
                   chunks: chunksWithEmbeddings
                 });
-
                 generatedCount += chunksNeedingEmbeddings.length;
               }
 
               processedCount++;
 
-              // Log de progreso cada 3 archivos
               if (processedCount % 3 === 0 || processedCount === files.length) {
                 logger.info(`   Progreso: ${processedCount}/${files.length} archivos procesados (${generatedCount} embeddings generados)...`);
               }
@@ -963,7 +759,6 @@ async function initializeEmbeddingsInBackground() {
 
         logger.info(`✅ Embeddings inicializados: ${processedCount} archivos procesados, ${generatedCount} embeddings generados`);
 
-        // Recargar chunks con los nuevos embeddings
         await embeddingsService.reloadChunks();
 
         const finalStats = embeddingsService.getEmbeddingStats();
@@ -976,11 +771,10 @@ async function initializeEmbeddingsInBackground() {
       }
     } else {
       logger.info('ℹ️ Embeddings desactivados (USE_EMBEDDINGS=false)');
-      logger.info('   Usando keyword search (sistema anterior)');
     }
   } catch (error) {
     logger.error('❌ Error inicializando embeddings:', error.message);
-    logger.warn('   El bot continuará funcionando sin embeddings (usando keyword search)');
+    logger.warn('   El bot continuará funcionando sin embeddings');
   }
 }
 
@@ -998,12 +792,10 @@ const shutdown = async (signal) => {
   isShuttingDown = true;
   logger.info(`${signal} recibido. Cerrando servidor...`);
 
-  // 1. Cerrar Socket.IO primero (para evitar nuevas conexiones WebSocket)
+  // 1. Close Socket.IO
   try {
     if (io) {
-      // Desconectar todos los clientes
       io.sockets.disconnectSockets();
-      // Cerrar el servidor de Socket.IO
       await new Promise((resolve) => {
         io.close(() => {
           logger.info('Socket.IO cerrado');
@@ -1015,15 +807,15 @@ const shutdown = async (signal) => {
     logger.warn('Error cerrando Socket.IO:', e.message);
   }
 
-  // 2. Cerrar WhatsApp
+  // 2. Close all WhatsApp sessions
   try {
-    await whatsappWeb.destroy();
-    logger.info('WhatsApp cerrado');
+    await sessionManager.destroy();
+    logger.info('Todas las sesiones de WhatsApp cerradas');
   } catch (e) {
-    logger.warn('Error cerrando WhatsApp:', e.message);
+    logger.warn('Error cerrando sesiones de WhatsApp:', e.message);
   }
 
-  // 3. Cerrar servidor HTTP (ya no acepta nuevas conexiones)
+  // 3. Close HTTP server
   try {
     server.close(() => {
       logger.info('✅ Servidor HTTP cerrado correctamente');
@@ -1034,17 +826,10 @@ const shutdown = async (signal) => {
     process.exit(1);
   }
 
-  // 4. Timeout aumentado (30 segundos) para dar tiempo a cerrar conexiones
+  // 4. Force exit after timeout
   setTimeout(() => {
     logger.error('⚠️ Timeout: Cierre forzado después de 30 segundos');
-
-    // Forzar cierre de todas las conexiones
-    try {
-      server.closeAllConnections();
-    } catch (e) {
-      // Ignorar errores
-    }
-
+    try { server.closeAllConnections(); } catch (e) { /* ignore */ }
     process.exit(1);
   }, 30000);
 };
@@ -1055,7 +840,6 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('uncaughtException', (error) => {
   logger.error('Excepción no capturada:', error);
 
-  // No crashear por errores de red transitorios (ej: download de videos grandes)
   const transientCodes = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'EPIPE', 'EAI_AGAIN'];
   const errorCode = error.code || error.cause?.code || '';
   const isTransient = transientCodes.includes(errorCode)
@@ -1065,10 +849,9 @@ process.on('uncaughtException', (error) => {
 
   if (isTransient) {
     logger.warn('⚠️ Error de red transitorio, el servidor continúa ejecutándose');
-    return; // No salir
+    return;
   }
 
-  // Para errores realmente fatales, sí salir
   process.exit(1);
 });
 

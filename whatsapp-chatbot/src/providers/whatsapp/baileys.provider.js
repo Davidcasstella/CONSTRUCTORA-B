@@ -26,8 +26,14 @@ const ffmpegPath = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 class BaileysProvider extends EventEmitter {
-  constructor() {
+  /**
+   * @param {Object} [options]
+   * @param {string} [options.sessionId='default'] - Unique session identifier
+   * @param {string} [options.authPath] - Custom auth directory path
+   */
+  constructor(options = {}) {
     super();
+    this.sessionId = options.sessionId || 'default';
     this.sock = null;
     this.isReady = false;
     this.qrCode = null;
@@ -36,15 +42,15 @@ class BaileysProvider extends EventEmitter {
     this.miLid = null;     // Own LID for multi-device status broadcasting
     this.miNombre = null;
     this.isConnecting = false;
-    this.authPath = path.join(process.cwd(), 'baileys_auth');
-    // ✅ NUEVO: Almacenamiento local de chats (para el dashboard)
+    this.authPath = options.authPath || path.join(process.cwd(), 'baileys_auth');
+    // Local chat storage (for dashboard)
     this.localChats = new Map(); // id -> chat data
-    // ✅ NUEVO: Mapa LID → teléfono para evitar chats duplicados
+    // LID → phone map to avoid duplicate chats
     this.lidToPhone = new Map(); // lid@lid -> number@s.whatsapp.net
-    // ✅ NUEVO: Gestión de temporizadores para evitar bucles
+    // Timer management to avoid loops
     this.reconnectTimeout = null;
     this.qrTimeout = null;
-    // ✅ FIX: Counter to prevent infinite auth failure loops
+    // Counter to prevent infinite auth failure loops
     this.authFailureCount = 0;
     this.MAX_AUTH_RETRIES = 1; // Only retry once after auth failure, then wait for manual QR
   }
@@ -1923,7 +1929,5 @@ class BaileysProvider extends EventEmitter {
 
 }
 
-// Singleton
-const instance = new BaileysProvider();
-
-module.exports = instance;
+// Export the class for multi-instance usage (SessionManager creates instances)
+module.exports = BaileysProvider;

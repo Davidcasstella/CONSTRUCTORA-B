@@ -3,139 +3,147 @@
  * ÍNDICE DE PROVEEDORES WHATSAPP
  * ===========================================
  *
- * Responsabilidades:
- * - Exportar el proveedor activo según configuración
- * - Implementar patrón Factory/Strategy
- * - Abstraer la selección del proveedor
+ * Responsibilities:
+ * - Export the active provider via Factory/Strategy pattern
+ * - Maintain backward compatibility (single-session API)
+ * - Expose SessionManager for multi-session access
  *
- * USO:
- * const whatsappProvider = require('./providers/whatsapp');
- * await whatsappProvider.sendMessage(to, message);
+ * USAGE (single-session, backward compat):
+ *   const whatsappProvider = require('./providers/whatsapp');
+ *   await whatsappProvider.sendMessage(to, message);
  *
- * El código que usa este módulo NO necesita saber
- * si está usando Meta o Twilio.
+ * USAGE (multi-session):
+ *   const { getSessionManager } = require('./providers/whatsapp');
+ *   const manager = getSessionManager();
+ *   const session = manager.getSession('session2');
+ *   await session.sendMessage(to, message);
  */
 
 const config = require('../../config');
 const logger = require('../../utils/logger');
 const MetaProvider = require('./meta.provider');
 const TwilioProvider = require('./twilio.provider');
-const BaileysProvider = require('./baileys.provider');
+const sessionManager = require('./session-manager');
 
 // ===========================================
 // FACTORY DE PROVEEDORES
 // ===========================================
 
-let providerInstance = null;
+let nonBaileysInstance = null;
 
 /**
- * Obtiene la instancia del proveedor activo
- * Implementa patrón Singleton para reutilizar conexión
+ * Get the default provider (session1 for Baileys, or the single Meta/Twilio instance).
+ * Backward-compatible — returns a single provider instance.
  */
 const getProvider = () => {
-  if (providerInstance) {
-    return providerInstance;
+  const providerType = config.whatsapp.provider;
+
+  if (providerType === 'baileys') {
+    // Return the default session (session1) from SessionManager
+    const defaultSession = sessionManager.getDefaultSession();
+    if (defaultSession) return defaultSession;
+    // Fallback: SessionManager may not be initialized yet — this is fine during startup
+    logger.warn('[WhatsApp-Index] Default session not available yet (SessionManager not initialized)');
+    return null;
   }
 
-  const providerType = config.whatsapp.provider;
+  // Non-Baileys providers: singleton as before
+  if (nonBaileysInstance) return nonBaileysInstance;
 
   switch (providerType) {
     case 'meta':
-      providerInstance = new MetaProvider(config.whatsapp.meta);
+      nonBaileysInstance = new MetaProvider(config.whatsapp.meta);
       break;
     case 'twilio':
-      providerInstance = new TwilioProvider(config.whatsapp.twilio);
-      break;
-    case 'baileys':
-      // BaileysProvider ya es un singleton, no hay que instanciarlo
-      providerInstance = BaileysProvider;
+      nonBaileysInstance = new TwilioProvider(config.whatsapp.twilio);
       break;
     default:
       throw new Error(`Proveedor WhatsApp no soportado: ${providerType}`);
   }
 
-  return providerInstance;
+  return nonBaileysInstance;
 };
 
 // ===========================================
-// EXPORTAR MÉTODOS DEL PROVEEDOR ACTIVO
+// EXPORT PROVIDER API (backward compatible)
 // ===========================================
-// Esto permite usar el módulo directamente:
-// whatsappProvider.sendMessage(...)
 
 module.exports = {
   /**
-   * Envía un mensaje de texto
-   * @param {string} to - Número de destino
-   * @param {string|Object} message - Mensaje a enviar
+   * Send a text message
+   * @param {string} to - Destination number
+   * @param {string|Object} message - Message to send
+   * @param {Object} [options] - Additional options
    */
-  sendMessage: (to, message, options) => getProvider().sendMessage(to, message, options),
+  sendMessage: (to, message, options) => {
+    const provider = getProvider();
+    if (!provider) throw new Error('WhatsApp provider not available');
+    return provider.sendMessage(to, message, options);
+  },
 
   /**
-   * Envía una imagen
-   * @param {string} to - Número de destino
-   * @param {string} imageUrl - URL de la imagen
-   * @param {string} caption - Texto opcional
+   * Send an image
    */
-  sendImage: (to, imageUrl, caption) => getProvider().sendImage(to, imageUrl, caption),
+  sendImage: (to, imageUrl, caption) => {
+    const provider = getProvider();
+    if (!provider) throw new Error('WhatsApp provider not available');
+    return provider.sendImage(to, imageUrl, caption);
+  },
 
   /**
-   * Envía un documento
-   * @param {string} to - Número de destino
-   * @param {string} documentUrl - URL del documento
-   * @param {string} filename - Nombre del archivo
+   * Send a document
    */
-  sendDocument: (to, documentUrl, filename) => getProvider().sendDocument(to, documentUrl, filename),
+  sendDocument: (to, documentUrl, filename) => {
+    const provider = getProvider();
+    if (!provider) throw new Error('WhatsApp provider not available');
+    return provider.sendDocument(to, documentUrl, filename);
+  },
 
   /**
-   * ✅ NUEVO: Envía un video
-   * @param {string} to - Número de destino
-   * @param {string} videoPath - Ruta del video
-   * @param {string} caption - Texto opcional
+   * Send a video
    */
-  sendVideo: (to, videoPath, caption) => getProvider().sendVideo(to, videoPath, caption),
+  sendVideo: (to, videoPath, caption) => {
+    const provider = getProvider();
+    if (!provider) throw new Error('WhatsApp provider not available');
+    return provider.sendVideo(to, videoPath, caption);
+  },
 
   /**
-   * ✅ NUEVO: Envía un audio
-   * @param {string} to - Número de destino
-   * @param {string} audioUrl - URL del audio
+   * Send an audio
    */
-  sendAudio: (to, audioUrl) => getProvider().sendAudio(to, audioUrl),
+  sendAudio: (to, audioUrl) => {
+    const provider = getProvider();
+    if (!provider) throw new Error('WhatsApp provider not available');
+    return provider.sendAudio(to, audioUrl);
+  },
 
   /**
-   * ✅ NUEVO: Envía un mensaje multimedia genérico
-   * @param {string} to - Número de destino
-   * @param {Object} mediaData - Datos del multimedia { type, url, filepath, filename, caption }
+   * Send a generic multimedia message
+   * @param {string} to - Destination number
+   * @param {Object} mediaData - { type, url, filepath, filename, caption }
    */
   sendMediaMessage: async (to, mediaData) => {
     const provider = getProvider();
+    if (!provider) throw new Error('WhatsApp provider not available');
     const fs = require('fs');
     const path = require('path');
 
-    // 1. Intentar resolver ruta absoluta (si existe y es válida en este SO)
+    // Resolve file path (same logic as before)
     let fsPath = mediaData.filepath;
 
-    // Si la ruta no existe localmente (ej: subido en otro ambiente), intentar reconstruirla
     if (!fsPath || !fs.existsSync(fsPath)) {
       const type = mediaData.type || 'image';
       const filename = mediaData.filename || path.basename(mediaData.url || '');
 
       if (filename) {
-        // Intentar usar el servicio de media para localizar/recuperar el archivo
         const mediaService = require('../../services/media.service');
-
-        // Esto buscará localmente y si no existe, descargará de S3 (re-poblando el disco local)
         await mediaService.getDashboardMediaBuffer(type, filename);
-
-        // Ahora la ruta local debería ser válida
-        const config = require('../../config');
-        fsPath = path.resolve(config.media.uploadDir, type, filename);
+        const mediaConfig = require('../../config');
+        fsPath = path.resolve(mediaConfig.media.uploadDir, type, filename);
       }
     }
 
-    // Si después de todo no hay ruta válida, intentar el fallback original (sanitizado)
     if (!fsPath || !fs.existsSync(fsPath)) {
-      // Eliminar prefijo /api/conversations si existe en la URL
       const cleanUrl = (mediaData.url || '').replace(/^\/?api\/conversations\//, '');
       fsPath = path.join(process.cwd(), cleanUrl);
     }
@@ -144,7 +152,6 @@ module.exports = {
       throw new Error(`No se pudo localizar el archivo para enviar: ${fsPath}`);
     }
 
-    // ✅ Validate file size before sending
     const fileStats = fs.statSync(fsPath);
     logger.info(`📤 [WHATSAPP-INDEX] Enviando media: path=${fsPath}, size=${fileStats.size} bytes, type=${mediaData.type}`);
 
@@ -167,59 +174,72 @@ module.exports = {
   },
 
   /**
-   * Obtiene la URL de descarga de un archivo multimedia
-   * @param {string} mediaId - ID del archivo
-   * @returns {Promise<string>} URL de descarga
+   * Get media download URL
    */
-  getMediaUrl: (mediaId) => getProvider().getMediaUrl(mediaId),
+  getMediaUrl: (mediaId) => {
+    const provider = getProvider();
+    if (!provider) return null;
+    return provider.getMediaUrl(mediaId);
+  },
 
   /**
-   * Descarga un archivo multimedia
-   * @param {string} url - URL del archivo
-   * @returns {Promise<Buffer>} Contenido del archivo
+   * Download media
    */
-  downloadMedia: (url) => getProvider().downloadMedia(url),
+  downloadMedia: (url) => {
+    const provider = getProvider();
+    if (!provider) return null;
+    return provider.downloadMedia(url);
+  },
 
   /**
-   * Marca un mensaje como leído
-   * @param {string} messageId - ID del mensaje
+   * Mark message as read
    */
-  markAsRead: (messageId) => getProvider().markAsRead(messageId),
+  markAsRead: (messageId) => {
+    const provider = getProvider();
+    if (!provider) return;
+    return provider.markAsRead(messageId);
+  },
 
   /**
-   * ✅ NUEVO: Obtiene los chats desde WhatsApp
-   * @param {number} limit - Cantidad de chats
-   * @returns {Promise<Array>} Lista de chats
+   * Fetch chats from WhatsApp
    */
-  fetchChats: (limit) => getProvider().fetchChats(limit),
+  fetchChats: (limit) => {
+    const provider = getProvider();
+    if (!provider) return [];
+    return provider.fetchChats(limit);
+  },
 
   /**
-   * ✅ NUEVO: Obtiene mensajes de un chat
-   * @param {string} jid - JID del chat
-   * @param {number} limit - Cantidad de mensajes
-   * @param {string} cursor - Cursor para paginación
-   * @returns {Promise<Object>} Mensajes y metadata
+   * Fetch chat messages
    */
-  fetchChatMessages: (jid, limit, cursor) => getProvider().fetchChatMessages(jid, limit, cursor),
+  fetchChatMessages: (jid, limit, cursor) => {
+    const provider = getProvider();
+    if (!provider) return { messages: [] };
+    return provider.fetchChatMessages(jid, limit, cursor);
+  },
 
   /**
-   * ✅ NUEVO: Envía indicador de "escribiendo..." (typing)
-   * @param {string} to - Número de destino
+   * Send typing indicator
    */
   sendTyping: (to) => {
     const provider = getProvider();
-    if (typeof provider.sendTyping === 'function') return provider.sendTyping(to);
+    if (provider && typeof provider.sendTyping === 'function') return provider.sendTyping(to);
   },
 
   /**
-   * ✅ NUEVO: Limpia el indicador de "escribiendo..."
-   * @param {string} to - Número de destino
+   * Clear typing indicator
    */
   clearTyping: (to) => {
     const provider = getProvider();
-    if (typeof provider.clearTyping === 'function') return provider.clearTyping(to);
+    if (provider && typeof provider.clearTyping === 'function') return provider.clearTyping(to);
   },
 
-  // Exponer factory por si se necesita acceso directo
-  getProvider
+  // Expose factories for direct access
+  getProvider,
+
+  /**
+   * Get the SessionManager singleton for multi-session operations.
+   * @returns {import('./session-manager')}
+   */
+  getSessionManager: () => sessionManager,
 };
