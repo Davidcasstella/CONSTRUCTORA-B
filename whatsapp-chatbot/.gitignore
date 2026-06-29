@@ -76,6 +76,7 @@ cookies.txt
 # Baileys WhatsApp Sessions (credentials - NEVER push)
 baileys_auth/
 baileys_auth_backup*/
+baileys_auth_session1/
 
 # Frontend build, env & dependencies
 frontend/.env
