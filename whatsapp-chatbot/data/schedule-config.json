@@ -22,5 +22,5 @@
   },
   "timezone": "America/Bogota",
   "scheduleCheckEnabled": false,
-  "holidayCheckEnabled": true
+  "holidayCheckEnabled": false
 }

@@ -18,6 +18,7 @@ const { router: conversationsRoutes, setSocketIO: setConversationsSocketIO } = r
 const holidaysRoutes = require('./holidays.routes');
 const mediaRoutes = require('./media.routes');
 const statisticsRoutes = require('./statistics.routes');
+const calendarRoutes = require('./calendar.routes'); // ✅ NUEVO: Rutas del calendario
 const { router: bulkRoutes, setWhatsAppClientGetter } = require('./bulk.routes');
 const bulkService = require('../services/bulk.service');
 const { requireAuth } = require('../middlewares/auth.middleware');
@@ -108,6 +109,9 @@ router.use('/statistics', statisticsRoutes);
 
 // Bulk messaging routes: /api/bulk/*
 router.use('/bulk', bulkRoutes);
+
+// Calendar routes: /api/calendar/*
+router.use('/calendar', calendarRoutes);
 
 // ===========================================
 // ✅ ENDPOINT DE MÉTRICAS

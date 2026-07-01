@@ -22,8 +22,10 @@ const timeSimulation = require('./time-simulation.service');
 const timezone = require('../utils/timezone'); // ✅ Para getDayOfWeek() con zona horaria correcta
 const numberControlService = require('./number-control.service');
 const spamControlService = require('./spam-control.service');
-const flowManager = require('../flows'); // ✅ NUEVO: Gestor de flujos
-const welcomeConfigService = require('./welcome-config.service'); // ✅ Welcome config
+const flowManager = require('../flows'); // Gestor de flujos
+const welcomeConfigService = require('./welcome-config.service'); // Welcome config
+const contextDetector = require('./context-detector.service'); // Detector de intenciones
+const aiProvider = require('../providers/ai'); // AI provider for intent analysis
 
 // ✅ NUEVO: Socket.IO para emitir eventos de escalación al dashboard
 let io = null;
@@ -188,6 +190,22 @@ async function processIncomingMessage(userId, message, options = {}) {
     // Si el bot está desactivado (asesor atendiendo), NO responder
     // IMPORTANTE: Se verifica ANTES del flujo activo para que el asesor
     // pueda responder en cualquier momento sin que el flujo interfiera
+
+    // ✅ CRITICAL FIX: If this is a new conversation cycle (no welcome sent),
+    // reset ALL escalation/bot flags BEFORE the bot_active check.
+    // Without this, bot_active=false from DynamoDB (previous escalation)
+    // blocks the ENTIRE new conversation permanently.
+    if (!conversation.welcomeSent && (conversation.bot_active === false || conversation.waitingForHuman || conversation.needs_human)) {
+      logger.info(`🔄 [NUEVO CICLO] Reseteando estado de escalación previo para ${userId}`);
+      conversation.waitingForHuman = false;
+      conversation.escalationMessageSent = false;
+      conversation.needs_human = false;
+      conversation.status = 'active';
+      conversation.bot_active = true;
+      conversation.needsHumanReason = null;
+      conversation.botDeactivatedBy = null;
+    }
+
     if (conversation.bot_active === false) {
       logger.info(`🔴 Bot DESACTIVADO para ${userId}. No se responde automáticamente.`);
       logger.info(`   Razón: Estado actual = ${conversation.status}`);
@@ -206,6 +224,53 @@ async function processIncomingMessage(userId, message, options = {}) {
 
       return null;
     }
+
+    // ===========================================
+    // PUNTO DE CONTROL 2: FLUJO ACTIVO (appointment, etc.)
+    // ===========================================
+    if (flowManager.hasActiveFlow(userId)) {
+      logger.info(`🔄 Procesando input para flujo activo en usuario ${userId}`);
+      
+      // Save user message first
+      if (!userMessageSaved) {
+        await saveMessage(userId, message, 'user', {
+          messageType: options.messageType || 'text',
+          mediaData,
+          whatsappMessageId: options.whatsappMessageId,
+          originalMessage: options.originalMessage
+        });
+        userMessageSaved = true;
+      }
+      
+      try {
+        const flowResponse = await flowManager.handleInput(userId, message);
+
+        if (flowResponse) {
+          // Flow completed or cancelled — send final message and clean up
+          if (flowResponse.isCompleted || flowResponse.isCancelled) {
+            if (flowResponse.message) {
+              await sendWithTypingDelay(userId, flowResponse.message, 1, { tag: 'flow_completed' });
+            }
+            // endFlow was already called inside flowManager.handleInput when isCompleted
+            conversation.activeFlow = null;
+            return null;
+          }
+
+          // Regular flow message (e.g. confirmation prompt, error, next step)
+          const msgText = flowResponse.text || flowResponse.message;
+          if (msgText) {
+            await sendWithTypingDelay(userId, msgText, 1, { tag: 'flow' });
+          }
+        }
+      } catch (flowError) {
+        logger.error(`❌ Error procesando flujo activo: ${flowError.message}`, flowError);
+        await flowManager.endFlow(userId);
+        conversation.activeFlow = null;
+      }
+
+      return null; // Always return null — flow handled the message
+    }
+
 
     // ===========================================
     // PUNTO DE CONTROL 4: HORARIO DE ATENCIÓN
@@ -291,6 +356,18 @@ async function processIncomingMessage(userId, message, options = {}) {
     if (!conversation.welcomeSent) {
       logger.info(`👋 PRIMER MENSAJE de ${userId} - Enviando saludo obligatorio`);
       logger.info(`   Mensaje original ignorado para RAG: "${message.substring(0, 50)}..."`);
+
+      // ✅ CRITICAL FIX: Reset any previous escalation state for new conversation cycle
+      // Without this, a previously escalated conversation blocks the bot permanently
+      if (conversation.waitingForHuman || conversation.needs_human) {
+        logger.info(`   🔄 Reseteando estado de escalación previo para nuevo ciclo`);
+        conversation.waitingForHuman = false;
+        conversation.escalationMessageSent = false;
+        conversation.needs_human = false;
+        conversation.status = 'active';
+        conversation.bot_active = true;
+        conversation.needsHumanReason = null;
+      }
 
       // Guardar mensaje del usuario (para historial)
       if (!userMessageSaved) {
@@ -570,6 +647,12 @@ async function processIncomingMessage(userId, message, options = {}) {
               // NO desactivar bot, NO enviar mensaje de rechazo
             }
 
+            // ENVIAR MENSAJE FINAL SI EXISTE
+            if (flowResult.message) {
+              await whatsappProvider.sendMessage(userId, flowResult.message);
+              await saveMessage(userId, flowResult.message, 'bot', 'flow_completed');
+            }
+
             return null;
           }
 
@@ -748,8 +831,11 @@ async function processIncomingMessage(userId, message, options = {}) {
           }
 
           // ✅ CASO 5: Mensaje normal del flujo (consent, waiting for input, etc.)
+          logger.info(`>>> ENTRANDO A CASO 5. flowResult: ${JSON.stringify(flowResult)}`);
           if (flowResult.message) {
+            logger.info(">>> ENVIANDO A WHATSAPP");
             await whatsappProvider.sendMessage(userId, flowResult.message);
+            logger.info(">>> GUARDANDO MENSAJE BOT");
             await saveMessage(userId, flowResult.message, 'bot', 'flow');
 
             // ✅ CORREGIDO: Si el flujo envió el mensaje de consentimiento, marcarlo como enviado
@@ -983,22 +1069,39 @@ async function processIncomingMessage(userId, message, options = {}) {
     // Si ya está esperando asesor y YA se envió el mensaje de escalación,
     // NO responder nada más. Solo guardar el mensaje.
     if (conversation.waitingForHuman === true) {
-      logger.info(`⏸️ Usuario ${userId} está esperando asesor. NO se responde.`);
-      logger.info(`   escalationMessageSent: ${conversation.escalationMessageSent}`);
-      logger.info(`   Mensaje del usuario guardado: "${message.substring(0, 50)}..."`);
+      // ✅ CRITICAL FIX: If the user sends a NEW greeting while waiting for human,
+      // they want to start a fresh conversation. Reset escalation state.
+      const { isGreeting } = require('./context-detector.service');
+      if (isGreeting(message)) {
+        logger.info(`🔄 [SALUDO DETECTADO] Usuario ${userId} reinicia conversación desde estado waitingForHuman`);
+        conversation.waitingForHuman = false;
+        conversation.escalationMessageSent = false;
+        conversation.needs_human = false;
+        conversation.needsHuman = false;
+        conversation.status = 'active';
+        conversation.bot_active = true;
+        conversation.needsHumanReason = null;
+        conversation.botDeactivatedBy = null;
+        conversation.welcomeSent = false; // Force new welcome cycle
+        // Fall through to normal processing
+      } else {
+        logger.info(`⏸️ Usuario ${userId} está esperando asesor. NO se responde.`);
+        logger.info(`   escalationMessageSent: ${conversation.escalationMessageSent}`);
+        logger.info(`   Mensaje del usuario guardado: "${message.substring(0, 50)}..."`);
 
-      // Solo guardar el mensaje del usuario (si no se guardó antes)
-      if (!userMessageSaved) {
-        await saveMessage(userId, message, 'user', {
-          messageType: options.messageType || 'text',
-          mediaData,
-          whatsappMessageId: options.whatsappMessageId,
-          originalMessage: options.originalMessage
-        });
-        userMessageSaved = true;
-      }
-      return null;
-    }
+        // Solo guardar el mensaje del usuario (si no se guardó antes)
+        if (!userMessageSaved) {
+          await saveMessage(userId, message, 'user', {
+            messageType: options.messageType || 'text',
+            mediaData,
+            whatsappMessageId: options.whatsappMessageId,
+            originalMessage: options.originalMessage
+          });
+          userMessageSaved = true;
+        }
+        return null; // Do NOT respond, DO NOT consume AI tokens
+      } // end else (not greeting)
+    } // end if (waitingForHuman)
 
 
     // ===========================================
@@ -1091,7 +1194,142 @@ async function processIncomingMessage(userId, message, options = {}) {
     // 2. Aceptó el consentimiento de datos
     // Por lo tanto, skipConsent=true para evitar duplicación
 
-    // Intentar generar respuesta con la IA
+    // ===========================================
+    // NUEVO: VER CITAS AGENDADAS
+    // ===========================================
+    if (contextDetector.isViewAppointmentsIntent(message)) {
+      logger.info(`📅 Intención de VER citas detectada para ${userId}`);
+      if (!userMessageSaved) {
+        await saveMessage(userId, message, 'user');
+        userMessageSaved = true;
+      }
+      // Start the flow in "list" mode (no cancellation offered)
+      const flowResponse = await flowManager.startFlow(userId, 'list-appointments', {
+        whatsappName: options.pushName,
+        customName: conversation.customName,
+        mode: 'list'
+      });
+      if (flowResponse && (flowResponse.message || flowResponse.text)) {
+        await sendWithTypingDelay(userId, flowResponse.message || flowResponse.text, 1, { tag: 'flow' });
+      }
+      return null;
+    }
+
+    // ===========================================
+    // NUEVO: CANCELAR CITA EXISTENTE
+    // ===========================================
+    if (contextDetector.isCancelAppointmentIntent(message)) {
+      logger.info(`❌ Intención de CANCELAR cita detectada para ${userId}`);
+      if (!userMessageSaved) {
+        await saveMessage(userId, message, 'user');
+        userMessageSaved = true;
+      }
+      // Start the flow in "cancel" mode
+      const flowResponse = await flowManager.startFlow(userId, 'cancel-appointment', {
+        whatsappName: options.pushName,
+        customName: conversation.customName,
+        mode: 'cancel'
+      });
+      if (flowResponse && (flowResponse.message || flowResponse.text)) {
+        await sendWithTypingDelay(userId, flowResponse.message || flowResponse.text, 1, { tag: 'flow' });
+      }
+      return null;
+    }
+
+    // ===========================================
+    // NUEVO: DETECCIÓN DE INTENCIÓN DE CITA (CALENDARIO)
+    // ===========================================
+    if (contextDetector.isAppointmentIntent(message)) {
+      logger.info(`📅 Intención de cita detectada para ${userId}`);
+      
+      // Guardar el mensaje (solo si no se guardó antes)
+      if (!userMessageSaved) {
+        await saveMessage(userId, message, 'user');
+        userMessageSaved = true;
+      }
+
+      // Iniciar el flujo de citas y obtener el primer mensaje
+      const flowResponse = await flowManager.startFlow(userId, 'appointment', {
+        whatsappName: options.pushName,
+        customName: conversation.customName
+      });
+      
+      if (flowResponse && flowResponse.text) {
+        await sendWithTypingDelay(userId, flowResponse.text, 1, { tag: 'flow' });
+      } else if (flowResponse && flowResponse.message) {
+        await sendWithTypingDelay(userId, flowResponse.message, 1, { tag: 'flow' });
+      }
+      return null;
+    }
+
+
+    // ===========================================
+    // NUEVO: ANÁLISIS DE INTENCIÓN POR IA (lenguaje natural libre)
+    // Runs ONLY when regex patterns above didn't detect a specific intent.
+    // Uses AI to classify the message as: book / view / cancel / other
+    // giving it the last 30 messages of conversation context.
+    // ===========================================
+    try {
+      const appointmentIntent = await detectAppointmentIntentWithAI(
+        message,
+        userId,
+        conversation
+      );
+
+      if (appointmentIntent === 'book') {
+        logger.info(`🤖 IA detectó intención de AGENDAR para ${userId}`);
+        if (!userMessageSaved) {
+          await saveMessage(userId, message, 'user');
+          userMessageSaved = true;
+        }
+        const flowResponse = await flowManager.startFlow(userId, 'appointment', {
+          whatsappName: options.pushName,
+          customName: conversation.customName
+        });
+        if (flowResponse && (flowResponse.message || flowResponse.text)) {
+          await sendWithTypingDelay(userId, flowResponse.message || flowResponse.text, 1, { tag: 'flow' });
+        }
+        return null;
+      }
+
+      if (appointmentIntent === 'view') {
+        logger.info(`🤖 IA detectó intención de VER CITAS para ${userId}`);
+        if (!userMessageSaved) {
+          await saveMessage(userId, message, 'user');
+          userMessageSaved = true;
+        }
+        const flowResponse = await flowManager.startFlow(userId, 'list-appointments', {
+          whatsappName: options.pushName,
+          customName: conversation.customName,
+          mode: 'list'
+        });
+        if (flowResponse && (flowResponse.message || flowResponse.text)) {
+          await sendWithTypingDelay(userId, flowResponse.message || flowResponse.text, 1, { tag: 'flow' });
+        }
+        return null;
+      }
+
+      if (appointmentIntent === 'cancel') {
+        logger.info(`🤖 IA detectó intención de CANCELAR CITA para ${userId}`);
+        if (!userMessageSaved) {
+          await saveMessage(userId, message, 'user');
+          userMessageSaved = true;
+        }
+        const flowResponse = await flowManager.startFlow(userId, 'cancel-appointment', {
+          whatsappName: options.pushName,
+          customName: conversation.customName,
+          mode: 'cancel'
+        });
+        if (flowResponse && (flowResponse.message || flowResponse.text)) {
+          await sendWithTypingDelay(userId, flowResponse.message || flowResponse.text, 1, { tag: 'flow' });
+        }
+        return null;
+      }
+    } catch (intentErr) {
+      // Non-fatal — continue to normal AI response if intent detection fails
+      logger.warn(`⚠️ Error en detección de intención por IA: ${intentErr.message}`);
+    }
+
     let response;
     try {
       response = await chatService.generateTextResponse(userId, message, {
@@ -1304,14 +1542,15 @@ async function processIncomingMessage(userId, message, options = {}) {
       conversation.needsHumanReason = 'processing_error';
 
       await whatsappProvider.sendMessage(userId, fallbackMsg);
-      if (!userMessageSaved) {
-        await saveMessage(userId, message, 'user', {
-          messageType: options.messageType || 'text',
-          mediaData,
-          whatsappMessageId: options.whatsappMessageId,
-          originalMessage: options.originalMessage
-        });
-      }
+      // Removed userMessageSaved check because it is out of scope here.
+      // If we got to the catch block from the top level, we don't know if it's saved.
+      // Safest to just save it anyway or skip saving it if it crashes.
+      await saveMessage(userId, message, 'user', {
+        messageType: options.messageType || 'text',
+        mediaData,
+        whatsappMessageId: options.whatsappMessageId,
+        originalMessage: options.originalMessage
+      });
       await saveMessage(userId, fallbackMsg, 'bot', { messageType: 'system' });
 
       // ✅ NUEVO: Emitir evento de estado del bot actualizado
@@ -1673,7 +1912,71 @@ async function getStats() {
   };
 }
 
+// ===========================================
+// AI INTENT CLASSIFIER FOR APPOINTMENTS
+// ===========================================
+
+/**
+ * Uses AI to detect if the user's message is about appointments.
+ * Returns: 'book' | 'view' | 'cancel' | 'other'
+ *
+ * This runs only when regex patterns fail — it's a safety net
+ * for creative/unusual natural language expressions.
+ *
+ * @param {string} message - Current user message
+ * @param {string} userId  - WhatsApp user ID
+ * @param {Object} conversation - Conversation state object
+ * @returns {Promise<string>} Intent: 'book' | 'view' | 'cancel' | 'other'
+ */
+async function detectAppointmentIntentWithAI(message, userId, conversation) {
+  try {
+    // Build conversation context (last 30 messages)
+    const recentMessages = (conversation?.messages || [])
+      .slice(-30)
+      .map(m => `${m.sender === 'bot' ? 'Asistente' : 'Usuario'}: ${m.message}`)
+      .join('\n');
+
+    const systemPrompt = `Eres un clasificador de intenciones para un chatbot de una constructora colombiana.
+Tu ÚNICA tarea es clasificar el mensaje del usuario en UNA de estas categorías:
+
+- book   → el usuario quiere AGENDAR, programar, pedir, sacar o crear una nueva cita/reunión/visita
+- view   → el usuario quiere CONSULTAR, ver, saber o revisar sus citas o reuniones existentes
+- cancel → el usuario quiere CANCELAR, eliminar, quitar o anular una cita o reunión existente
+- other  → cualquier otro tema (preguntas, saludos, quejas, información, etc.)
+
+Responde ÚNICAMENTE con una de las 4 palabras: book, view, cancel, other
+No expliques. No uses puntos. Solo la palabra.`;
+
+    const userPrompt = `Conversación previa (contexto):
+${recentMessages || '(sin historial previo)'}
+
+Mensaje actual del usuario:
+"${message}"
+
+Clasifica la intención del mensaje actual:`;
+
+    const result = await aiProvider.chat([
+      { role: 'system', content: systemPrompt },
+      { role: 'user',   content: userPrompt }
+    ], {
+      maxTokens: 5,      // Only need one word
+      temperature: 0     // Be deterministic
+    });
+
+    const intent = (result || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+    logger.info(`🤖 AI intent classifier → "${message.substring(0, 40)}" = ${intent}`);
+
+    if (['book', 'view', 'cancel'].includes(intent)) return intent;
+    return 'other';
+
+  } catch (err) {
+    logger.warn(`⚠️ detectAppointmentIntentWithAI failed: ${err.message}`);
+    return 'other';
+  }
+}
+
 module.exports = {
+
   processIncomingMessage,
   isOutOfHours,
   getOutOfHoursMessage,
@@ -1696,5 +1999,6 @@ module.exports = {
     });
   }
 };
+
 
 

@@ -134,7 +134,7 @@ function ProfileAvatar({ jid, name, isGroup, onClick }) {
     if (!jid || isGroup) return;
 
     // We can use a local in-memory cache on the frontend to avoid repeated fetches across remounts
-    const cacheKey = `profile_pic_v4_${jid}`;
+    const cacheKey = `profile_pic_v5_${jid}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       if (cached === 'null') setError(true);
@@ -1227,14 +1227,16 @@ export default function ConversationsPage() {
   // Search is now server-side; only apply status filter client-side
   const filteredConvs = conversations
     .filter(c => {
+      const isGroup = c.isGroup || (c.userId && c.userId.endsWith('@g.us'));
       // ✅ Groups filter: show only group chats (@g.us)
-      if (filter === 'groups') return c.isGroup || (c.userId && c.userId.endsWith('@g.us'));
+      if (filter === 'groups') return isGroup;
+      // ✅ All other filters exclude groups by default
+      if (isGroup) return false;
+
       // ✅ Device filters: show only conversations from that session
       if (filter === 'device1') return c.sessionId === 'session1';
       if (filter === 'device2') return c.sessionId === 'session2';
-      // ✅ All other filters exclude groups by default
-      const isGroup = c.isGroup || (c.userId && c.userId.endsWith('@g.us'));
-      if (isGroup) return false;
+      
       if (filter === 'pending') return c.status === 'pending_advisor' || c.status === 'out_of_hours';
       if (filter === 'advisor') return c.status === 'advisor_handled';
       if (filter === 'active') return c.status === 'active';

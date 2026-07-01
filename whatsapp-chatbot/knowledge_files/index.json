@@ -1,4 +1,18 @@
 {
-  "files": [],
-  "lastUpdate": null
+  "files": [
+    {
+      "id": "1782886801127",
+      "fileName": "1782886801113_Preguntas y respuestas para el flujo de un chatbot de constructora.txt",
+      "originalName": "Preguntas y respuestas para el flujo de un chatbot de constructora.txt",
+      "type": "txt",
+      "size": 6848,
+      "chunksCount": 26,
+      "uploadDate": "2026-07-01T06:20:01.127Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "etapa1/1782886801113_Preguntas y respuestas para el flujo de un chatbot de constructora.txt",
+      "isManual": true,
+      "is_active": true
+    }
+  ],
+  "lastUpdate": "2026-07-01T06:20:38.474Z"
 }

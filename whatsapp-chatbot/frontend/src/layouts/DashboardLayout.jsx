@@ -14,11 +14,12 @@ const NAV_ITEMS = [
   { to: '/quick-replies', icon: '⚡', label: 'Respuestas Rápidas' },
   { to: '/documents', icon: '📁', label: 'Documentos' },
   { to: '/number-control', icon: '🔢', label: 'Control de Números' },
-  { to: '/holidays', icon: '📅', label: 'Días Festivos' },
-  { to: '/statistics', icon: '📊', label: 'Estadísticas' },
+  // { to: '/holidays', icon: '📅', label: 'Días Festivos' }, // Oculto temporalmente
+  // { to: '/statistics', icon: '📊', label: 'Estadísticas' }, // Oculto temporalmente
   { to: '/settings', icon: '⚙️', label: 'Configuración' },
-  { to: '/statuses', icon: '🔵', label: 'Estados', badge: 'Nuevo' },
+  // { to: '/statuses', icon: '🔵', label: 'Estados', badge: 'Nuevo' }, // Oculto temporalmente
   { to: '/ai-rules', icon: '🤖', label: 'Reglas IA', badge: 'Nuevo' },
+  { to: '/calendar', icon: '📅', label: 'Calendario', badge: 'Nuevo' },
   { section: 'Marketing' },
   { to: '/bulk-messages', icon: '📢', label: 'Mensajes Masivos', badge: 'Nuevo' },
 ];
@@ -36,6 +37,7 @@ const VIEW_NAMES = {
   '/settings': 'Configuración',
   '/statuses': 'Estados',
   '/ai-rules': 'Reglas IA',
+  '/calendar': 'Calendario',
   '/bulk-messages': 'Mensajes Masivos',
 };
 

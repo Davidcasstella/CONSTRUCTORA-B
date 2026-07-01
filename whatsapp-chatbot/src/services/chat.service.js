@@ -21,6 +21,7 @@ const ragOptimized = require('./rag-optimized.service'); // ✅ NUEVO: RAG Optim
 const contextDetector = require('./context-detector.service'); // ✅ CRÍTICO: Detector de contexto
 const scheduleConfig = require('./schedule-config.service'); // ✅ NUEVO: Configuración dinámica de horario
 const aiRulesService = require('./ai-rules.service'); // ✅ NUEVO: Reglas de comportamiento IA
+const flowManager = require('../flows'); // ✅ PARA FLUJO DE AGENDAMIENTO
 
 // Inicializar base de conocimiento
 knowledgeBase.initialize();
@@ -206,6 +207,18 @@ const generateTextResponse = async (userId, message, options = {}) => {
 
     logger.info(`🔍 Contexto detectado: ${contextResult.type} (NORBOY: ${contextResult.isNorboyRelated})`);
 
+    // ✅ INICIAR FLUJO DE AGENDAMIENTO SI SE DETECTA INTENCIÓN
+    if (contextResult.type === 'appointment_intent') {
+      logger.info(`📅 Iniciando flujo de agendamiento para ${userId}`);
+      
+      const initialMessage = await flowManager.startFlow(userId, 'appointment', {
+        whatsappName: conversationStateService.getConversation(userId)?.whatsappName
+      });
+
+      return initialMessage.message; 
+      // Retornar solo el string, `message-processor` lo encapsulará.
+    }
+
     // Si NO es sobre NORBOY → ESCALAR a asesor humano inmediatamente
     if (!contextResult.isNorboyRelated && contextResult.type !== 'greeting' && contextResult.type !== 'gratitude') {
       logger.warn(`❌ Pregunta FUERA DE CONTEXTO: "${message.substring(0, 50)}..."`);
@@ -230,6 +243,32 @@ const generateTextResponse = async (userId, message, options = {}) => {
     if (isGreeting(normalizedMessage) || contextResult.type === 'greeting') {
       logger.info('📗 Respuesta: Saludo (local)');
       return getGreetingResponse();
+    }
+
+    // 1.5 ✅ FIX: Detectar solicitud GENERAL de información (antes de llegar al RAG)
+    // Frases como "quiero mas inf", "quiero informacion", "necesito informacion"
+    // el RAG no puede resolverlas porque son demasiado genéricas.
+    // Respondemos con presentación del proyecto para guiar la conversación.
+    const GENERAL_INFO_PATTERNS = [
+      /^(quiero|quisiera|necesito|dame|deme|déme|dáme)\s+(mas\s+)?(inf(ormaci[oó]n|o)?|info|detalles|más)$/i,
+      /^(mas\s+)?(inf(o|ormaci[oó]n)?)$/i,
+      /^quiero\s+saber$/i,
+      /^(mas\s+)?informaci[oó]n\s+(por\s+favor|pls|porfa)?$/i,
+      /^(dame|mé|me)\s+(mas\s+)?info$/i,
+    ];
+    const isGeneralInfoRequest = GENERAL_INFO_PATTERNS.some(p => p.test(normalizedMessage.trim()));
+
+    if (isGeneralInfoRequest) {
+      logger.info('🏗️ Respuesta: Solicitud general de información del proyecto (sin RAG)');
+      return `¡Con mucho gusto! 🏗️ Sobre la *Urbanización Bellavista II* le puedo informar sobre:
+
+💰 *Precios y financiación* – valores, cuotas, subsidios
+🏠 *Características* – habitaciones, áreas, zonas comunes
+📍 *Ubicación* – dónde estamos en Tunja
+📅 *Visita* – agendar cita con asesora
+📌 *Requisitos* – cómo calificar
+
+¿Sobre cuál de estos temas desea que le informemos? 😊`;
     }
 
     // 2. Detectar comandos de ayuda (no necesita IA)
@@ -332,6 +371,34 @@ const generateTextResponse = async (userId, message, options = {}) => {
       return humanizeResponse(localAnswer.answer);
     }
 
+    // ✅ FIX CRÍTICO: Si hay documentos subidos, intentar búsqueda por keywords
+    // y responder directamente con el texto del documento (sin IA)
+    // Esto evita escalación cuando OpenAI no está disponible pero el doc SÍ tiene la info
+    try {
+      const docResults = knowledgeUploadService.searchInFiles(message);
+      if (docResults.length > 0 && docResults[0].score >= 5) {
+        logger.info(`📄 Respondiendo con documento directo (sin IA) - score: ${docResults[0].score}`);
+        // Tomar los mejores chunks y formatear una respuesta directa
+        const topChunks = docResults.slice(0, 3);
+        const docText = topChunks.map(r => r.text).join('\n\n');
+        // Limpiar y formatear el texto
+        const cleanText = docText
+          .replace(/Pregunta del cliente:.*?\n/gi, '')
+          .replace(/Respuesta del Chatbot:\s*/gi, '')
+          .replace(/Respuesta del Bot:\s*/gi, '')
+          .replace(/Pregunta:\s*/gi, '')
+          .replace(/Respuesta:\s*/gi, '')
+          .replace(/•\s*/g, '\n• ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+        if (cleanText.length > 20) {
+          return { type: 'text', text: cleanText, needsHuman: false };
+        }
+      }
+    } catch (docErr) {
+      logger.warn('Error en fallback de documento:', docErr.message);
+    }
+
     // ===========================================
     // ✅ CRÍTICO: NO MÁS "ÚLTIMO INTENTO CON IA"
     // Si llegamos aquí, ESCALAR INMEDIATAMENTE
@@ -420,23 +487,30 @@ const generateWithAI = async (userId, message, options = {}) => {
           // ✅ CRÍTICO: Evaluar escalación ANTES de continuar
           const escalationEval = ragOptimized.evaluateEscalation(ragResult, message);
           if (escalationEval.shouldEscalate) {
-            logger.warn(`⚠️ ESCALACIÓN REQUERIDA: ${escalationEval.reason}`);
-            logger.warn(`   ❌ NO se llamará a IA - Score insuficiente`);
-
-            return {
-              type: 'escalation_no_info',
-              text: contextDetector.MESSAGES.lowConfidence,
-              needsHuman: true,
-              escalation: {
-                reason: escalationEval.reason,
-                priority: 'medium',
-                scores: {
-                  topSimilarity: ragResult.topSimilarity,
-                  avgSimilarity: ragResult.avgSimilarity,
-                  quality: ragResult.quality
+            // ✅ FIX: Antes de escalar, intentar búsqueda por keywords como fallback
+            logger.warn(`⚠️ RAG quiere escalar (${escalationEval.reason}) - intentando keywords primero`);
+            const keywordFallback = knowledgeUploadService.searchInFiles(message);
+            if (keywordFallback.length > 0 && keywordFallback[0].score >= 5) {
+              logger.info(`✅ Keywords fallback encontró ${keywordFallback.length} resultados (top: ${keywordFallback[0].score}) - usando en lugar de escalar`);
+              searchResults = keywordFallback;
+              contextQuality = 'none'; // Se recalculará abajo
+            } else {
+              logger.warn(`   ❌ Keywords fallback también sin resultados - escalando`);
+              return {
+                type: 'escalation_no_info',
+                text: contextDetector.MESSAGES.lowConfidence,
+                needsHuman: true,
+                escalation: {
+                  reason: escalationEval.reason,
+                  priority: 'medium',
+                  scores: {
+                    topSimilarity: ragResult.topSimilarity,
+                    avgSimilarity: ragResult.avgSimilarity,
+                    quality: ragResult.quality
+                  }
                 }
-              }
-            };
+              };
+            }
           }
         } else {
           logger.info('⚠️ No hay resultados con RAG optimizado, usando búsqueda por keywords');
@@ -460,13 +534,14 @@ const generateWithAI = async (userId, message, options = {}) => {
       // Determinar calidad del contexto basado en scores (si no se hizo con RAG optimizado)
       if (contextQuality === 'none') {
         // Umbrales ajustados para scores de keywords (0-100)
+        // ✅ AJUSTADO: más permisivo para chatbot de proyecto inmobiliario
         if (topScore >= 50) {
           contextQuality = 'high';
           logger.info(`✅ Contexto de ALTA calidad detectado (top score: ${topScore})`);
-        } else if (topScore >= 30) {
+        } else if (topScore >= 20) {
           contextQuality = 'medium';
           logger.info(`📊 Contexto de calidad MEDIA detectado (top score: ${topScore})`);
-        } else if (topScore >= 15) {
+        } else if (topScore >= 5) {
           contextQuality = 'low';
           logger.info(`⚠️ Contexto de BAJA calidad detectado (top score: ${topScore})`);
         } else {
@@ -540,13 +615,37 @@ const generateWithAI = async (userId, message, options = {}) => {
 
   const messages = buildMessages(message, conversationHistory, relevantContext, options, { contextQuality, searchResults });
 
-  // Aumentar tokens cuando hay contexto de documentos
-  const maxTokens = hasDocuments ? 250 : 150;
+  // Increase tokens: enough for complete, rich answers
+  const maxTokens = hasDocuments ? 800 : 500;
 
-  const response = await aiProvider.chat(messages, {
-    maxTokens: maxTokens,
-    temperature: 0.7 // Un poco más preciso
-  });
+  let response;
+  try {
+    response = await aiProvider.chat(messages, {
+      maxTokens: maxTokens,
+      temperature: 0.7
+    });
+  } catch (aiError) {
+    // ✅ FIX: OpenAI/AI falló (key inválida, red, etc.) - usar texto del documento directamente
+    logger.warn(`⚠️ AI provider falló: ${aiError.message}. Usando texto del documento.`);
+    if (searchResults.length > 0) {
+      const topChunks = searchResults.slice(0, 3);
+      const docText = topChunks.map(r => r.text || '').join('\n\n');
+      const cleanDoc = docText
+        .replace(/Pregunta del cliente:.*?\n/gi, '')
+        .replace(/Respuesta del Chatbot:\s*/gi, '')
+        .replace(/Respuesta del Bot:\s*/gi, '')
+        .replace(/Pregunta:\s*/gi, '')
+        .replace(/Respuesta:\s*/gi, '')
+        .replace(/•\s*/g, '\n• ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      if (cleanDoc.length > 20) {
+        logger.info(`✅ Respondiendo con texto del documento (AI no disponible)`);
+        return { type: 'text', text: cleanDoc, needsHuman: false };
+      }
+    }
+    throw aiError; // Re-lanzar si no hay doc disponible
+  }
 
   const cleanedResponse = cleanQuestionMarks(response);
 
@@ -979,13 +1078,23 @@ const buildMessages = (userMessage, history = [], context = '', options = {}, co
     // Si no hay contexto de documentos, permitir respuestas más generales sobre NORBOY
     messages.push({
       role: 'system',
-      content: `📋 BASE DE CONOCIMIENTO:\nNo hay documentos específicos cargados.\n\nINSTRUCCIONES:
-1. Responde preguntas generales sobre NORBOY (cooperativa, proceso electoral, delegados)
-2. Si la pregunta requiere información específica (fechas, montos, detalles), di: "Estamos verificando esa información. Un asesor te contestará en breve."
-3. Si la pregunta es sobre temas completamente ajenos a NORBOY, indica amablemente que un asesor le ayudará
-4. Responde siempre de manera amable usando "sumercé" para dirigirte al usuario
+      content: `CONTEXTO DEL ASISTENTE NORBOY:
+Eres el asistente virtual de NORBOY, una constructora colombiana.
+Tus capacidades incluyen:
+1. Responder preguntas sobre NORBOY (cooperativa, proceso electoral, delegados)
+2. Agendar citas (el sistema tiene un flujo especial para esto)
+3. Mostrar citas existentes del usuario
+4. Cancelar citas agendadas
 
-NO respondas sobre temas ajenos a la cooperativa (ciencia, historia, geografía, clima, etc.).`
+Cuando el usuario quiera agendar, ver o cancelar una cita de CUALQUIER forma que lo exprese
+(ej: "me gustaría reunirme", "tengo una cita?", "necesito cancelar lo de mañana",
+"quiero hablar con alguien", "quisiera una reunion"), responde con un mensaje amable
+que indique que el sistema procesará su solicitud, por ejemplo:
+"Claro sumercé, con gusto le ayudo a gestionar su cita. En un momento el sistema le preguntará los detalles."
+
+Si la pregunta requiere información específica que no tienes, di que un asesor te ayudará.
+Responde siempre de manera amable usando "sumercé".
+NO respondas sobre temas ajenos a la constructora (ciencia, historia, clima, etc.).`
     });
   }
 
@@ -1061,6 +1170,11 @@ INSTRUCCIONES:
 - Formato sugerido: "Sumercé, no encuentro información específica sobre [tema] en los documentos disponibles. Le recomiendo comunicarse con un asesor..."`;
   }
 
+  instructions += `
+- REGLA DE ORO: Tus respuestas deben ser MUY BREVES, concisas y conversacionales, como un chat de WhatsApp. 
+- Evita párrafos largos y viñetas interminables.
+- Si la información es muy larga, resume solo lo más importante.`;
+
   return `
 PREGUNTA DEL USUARIO:
 "${userMessage}"
@@ -1083,7 +1197,6 @@ RESPUESTA:`;
  */
 const getConversationHistory = async (userId) => {
   try {
-    // Obtener el servicio de estado de conversación
     const conversationStateService = require('./conversation-state.service');
     const conversation = conversationStateService.getConversation(userId);
 
@@ -1091,30 +1204,20 @@ const getConversationHistory = async (userId) => {
       return [];
     }
 
-    // Obtener mensajes de hoy (últimas 24 horas)
-    const now = Date.now();
-    const oneDayMs = 24 * 60 * 60 * 1000;
-    const todayStart = now - oneDayMs;
+    // Last 30 messages (regardless of time) — gives the AI full context
+    const HISTORY_LIMIT = 30;
 
-    // Filtrar mensajes de hoy y convertirlos al formato de OpenAI
-    const todayMessages = conversation.messages
-      .filter(msg => msg.timestamp >= todayStart)
-      .map(msg => {
-        // Mapear sender a role
-        let role = 'user';
-        if (msg.sender === 'bot' || msg.sender === 'admin') {
-          role = 'assistant';
-        }
+    const allMessages = conversation.messages
+      .map(msg => ({
+        role: (msg.sender === 'bot' || msg.sender === 'admin') ? 'assistant' : 'user',
+        content: msg.message
+      }))
+      // Take only the last HISTORY_LIMIT entries
+      .slice(-HISTORY_LIMIT);
 
-        return {
-          role: role,
-          content: msg.message
-        };
-      });
+    logger.debug(`📜 Historial cargado para ${userId}: ${allMessages.length} mensajes (max ${HISTORY_LIMIT})`);
 
-    logger.debug(`📜 Historial cargado para ${userId}: ${todayMessages.length} mensajes de hoy`);
-
-    return todayMessages;
+    return allMessages;
   } catch (error) {
     logger.error(`Error obteniendo historial de conversación para ${userId}:`, error);
     return [];
@@ -1155,3 +1258,5 @@ module.exports = {
   getOutOfHoursMessage,
   NO_INFO_MESSAGE  // Exportar para uso en otros módulos
 };
+
+

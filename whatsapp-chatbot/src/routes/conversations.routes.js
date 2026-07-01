@@ -2047,8 +2047,23 @@ router.get('/:userId/profile-picture', async (req, res) => {
       return res.json({ success: true, url: cached.url });
     }
 
-    const whatsappProvider = require('../providers/whatsapp');
-    const url = await whatsappProvider.getProfilePictureUrl(userId);
+    let url = null;
+
+    // 1. Intentar obtener la sesión específica de la conversación
+    const conv = conversationStateService.getConversation(userId);
+    const sessionManager = whatsappProvider.getSessionManager ? whatsappProvider.getSessionManager() : null;
+
+    if (conv && conv.sessionId && sessionManager) {
+      const session = sessionManager.getSession(conv.sessionId);
+      if (session && session.isReady && session.sock) {
+        url = await session.getProfilePictureUrl(userId);
+      }
+    }
+
+    // 2. Fallback a session1/proveedor por defecto si falló lo anterior
+    if (!url) {
+      url = await whatsappProvider.getProfilePictureUrl(userId);
+    }
     
     // Guardar en caché incluso si es null (para no seguir consultando si no tiene foto)
     profilePicCache.set(userId, { url, timestamp: Date.now() });

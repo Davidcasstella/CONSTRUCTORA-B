@@ -56,6 +56,7 @@ class Conversation {
     // Gestión de chats
     this.customName = data.customName || null;
     this.isDeleted = data.isDeleted || false;
+    this.sessionId = data.sessionId || 'session1';
 
     // Mensajes (para memoria en caché, no se guarda en DB así)
     this._messages = [];

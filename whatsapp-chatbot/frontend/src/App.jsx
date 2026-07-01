@@ -18,6 +18,7 @@ import StatisticsPage from './pages/StatisticsPage';
 import StatusesPage from './pages/StatusesPage';
 import AIRulesPage from './pages/AIRulesPage';
 import BulkMessagesPage from './pages/BulkMessagesPage';
+import CalendarPage from './pages/CalendarPage'; // ✅ NUEVO: Página de calendario
 import './styles/global.css';
 
 function ProtectedRoute() {
@@ -47,6 +48,7 @@ function AppRoutes() {
           <Route path="/statuses" element={<ErrorBoundary><StatusesPage /></ErrorBoundary>} />
           <Route path="/ai-rules" element={<ErrorBoundary><AIRulesPage /></ErrorBoundary>} />
           <Route path="/bulk-messages" element={<ErrorBoundary><BulkMessagesPage /></ErrorBoundary>} />
+          <Route path="/calendar" element={<ErrorBoundary><CalendarPage /></ErrorBoundary>} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

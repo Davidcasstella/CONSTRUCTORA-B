@@ -97,17 +97,23 @@ const startFlow = async (userId, flowName, initialData = {}) => {
     startedAt: new Date()
   });
 
-  // TODO: Persistir en conversación
-  // await conversationRepository.update(userId, {
-  //   activeFlow: flowName,
-  //   flowState: flow.getState()
-  // });
-
   logger.info(`Flujo iniciado: ${flowName} para ${userId}`);
 
   // Obtener mensaje inicial del flujo
-  return await flow.start();
+  const result = await flow.start();
+
+  // ✅ CRITICAL FIX: If the flow completed or cancelled during start()
+  // (e.g. list-appointments with no events, or with instant completion),
+  // remove it from activeFlows immediately so the next message is not
+  // misrouted to a dead flow instance.
+  if (flow.isCompleted()) {
+    await endFlow(userId);
+    logger.info(`Flujo completado en start(): ${flowName} para ${userId}`);
+  }
+
+  return result;
 };
+
 
 /**
  * Procesa input del usuario en el flujo activo
@@ -196,9 +202,14 @@ const getActiveFlowInfo = (userId) => {
 const NorboyMenuFlow = require('./norboy-menu.flow');
 registerFlow('norboy-menu', NorboyMenuFlow);
 
-// TODO: Importar y registrar flujos adicionales cuando se implementen
-// const RegistrationFlow = require('./registration.flow');
-// registerFlow('registration', RegistrationFlow);
+// ✅ Flujo de agendamiento de citas
+const AppointmentFlow = require('./appointment.flow');
+registerFlow('appointment', AppointmentFlow);
+
+// ✅ Flujo para ver / cancelar citas existentes
+const CancelAppointmentFlow = require('./cancel-appointment.flow');
+registerFlow('cancel-appointment', CancelAppointmentFlow);
+registerFlow('list-appointments', CancelAppointmentFlow); // alias para solo listar
 
 module.exports = {
   registerFlow,

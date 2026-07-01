@@ -28,6 +28,7 @@ const logger = require('./src/utils/logger');
 const messageProcessor = require('./src/services/message-processor.service');
 const advisorControlService = require('./src/services/advisor-control.service');
 const conversationStateService = require('./src/services/conversation-state.service');
+const { splitIntoBubbles } = require('./src/utils/bubble-splitter');
 
 // Multi-session manager (replaces single whatsappWeb singleton)
 const sessionManager = require('./src/providers/whatsapp/session-manager');
@@ -490,8 +491,19 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
 
       try {
         const client = sessionProvider.getClient();
-        await client.sendMessage(from, { text: response });
-        logger.info(`✅ [${sessionId}] Respuesta enviada a ${from}`);
+        // Split into multiple bubbles for a human-like feel
+        const bubbles = splitIntoBubbles(response);
+        for (let i = 0; i < bubbles.length; i++) {
+          if (i > 0) {
+            // Short typing indicator between bubbles (0.8s per ~50 chars)
+            await client.sendPresenceUpdate('composing', from);
+            const delayMs = Math.min(Math.max(bubbles[i].length * 16, 600), 2000);
+            await new Promise(r => setTimeout(r, delayMs));
+            await client.sendPresenceUpdate('paused', from);
+          }
+          await client.sendMessage(from, { text: bubbles[i] });
+        }
+        logger.info(`✅ [${sessionId}] Respuesta enviada a ${from} (${bubbles.length} burbujas)`);
       } catch (sendError) {
         logger.error(`❌ Error enviando respuesta: ${sendError.message}`);
         throw sendError;
@@ -535,14 +547,25 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
 
       try {
         const client = sessionProvider.getClient();
-        await client.sendMessage(from, { text: response });
-        logger.info(`✅ [${sessionId}] Respuesta enviada a ${from}`);
+        // Split into multiple bubbles for a human-like feel
+        const bubbles = splitIntoBubbles(response);
+        for (let i = 0; i < bubbles.length; i++) {
+          if (i > 0) {
+            await client.sendPresenceUpdate('composing', from);
+            const delayMs = Math.min(Math.max(bubbles[i].length * 16, 600), 2000);
+            await new Promise(r => setTimeout(r, delayMs));
+            await client.sendPresenceUpdate('paused', from);
+          }
+          await client.sendMessage(from, { text: bubbles[i] });
+        }
+        logger.info(`✅ [${sessionId}] Respuesta enviada a ${from} (${bubbles.length} burbujas)`);
       } catch (sendError) {
         logger.error(`❌ Error enviando respuesta: ${sendError.message}`);
         throw sendError;
       }
 
       io.emit('bot-response', { to: from, response, chatType, sessionId });
+
 
     } else {
       logger.warn(`⚠️ Tipo de mensaje no soportado: ${type}`);

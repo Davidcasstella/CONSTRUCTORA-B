@@ -78,14 +78,14 @@ export default function AIRulesPage() {
 
   const activeCount = rules.filter(r => r.active).length;
 
-  // Example rules for empty state
+  // Example rules for empty state - constructora context
   const EXAMPLES = [
-    'Siempre responde en español',
-    'Usa tono profesional y formal',
-    'No hables de política',
-    'Cuando pregunten por soporte responde soporte@empresa.com',
-    'Responde de forma breve, máximo 2 oraciones',
-    'Siempre incluye un saludo al inicio',
+    'Siempre presenta el proyecto como el único VIP en Tunja',
+    'Toda conversación debe terminar ofreciendo agendar una visita',
+    'Si preguntan precio, menciona también la cuota de separación de $2.500.000',
+    'Cuando el cliente dude, menciona el Subsidio Ecovivienda de $10.258.620',
+    'Usa el nombre del cliente para dar un trato personalizado',
+    'Nunca inventes información; si no sabes, ofrece agendar una cita',
   ];
 
   return (
@@ -102,10 +102,10 @@ export default function AIRulesPage() {
       </div>
 
       {/* Info banner */}
-      <div style={{ background: '#e3f2fd', borderLeft: '4px solid #42a5f5', padding: '12px 16px', borderRadius: '0 8px 8px 0', marginBottom: '20px', fontSize: '13px', color: '#1565c0' }}>
-        💡 Las reglas configuran <strong>cómo</strong> responde la IA (tono, formato, restricciones).
-        El <strong>contenido</strong> de las respuestas sigue basándose en la base de conocimiento.
-        Solo las reglas <strong>activas</strong> se aplican.
+      <div style={{ background: '#e8f5e9', borderLeft: '4px solid #43a047', padding: '12px 16px', borderRadius: '0 8px 8px 0', marginBottom: '20px', fontSize: '13px', color: '#1b5e20' }}>
+        🏗️ Las reglas definen <strong>cómo</strong> responde la IA como asesora de Bellavista II.
+        Cada regla debe orientar la conversación hacia el <strong>agendamiento de una cita o visita al proyecto</strong>.
+        Solo las reglas <strong>activas</strong> se aplican en tiempo real.
       </div>
 
       {/* Active count */}

@@ -16,10 +16,27 @@
         "variants": [
           {
             "id": "v1",
-            "content": "¡Hola! Soy el asistente virtual. ¿En qué puedo ayudarle?",
+            "content": "Hola gusto saludarte bienvenido a la constructora G&A",
             "enabled": true
+          },
+          {
+            "id": "v_1782887678585_pk5e",
+            "content": "En que podemos ayudarte ?",
+            "enabled": false
           }
         ]
+      },
+      {
+        "id": "w_1782887750712_6sdjxd",
+        "order": 2,
+        "type": "text",
+        "content": "En que podemos ayudarte??",
+        "delay": 2,
+        "mediaUrl": null,
+        "mediaType": null,
+        "useGreeting": false,
+        "includeUserName": false,
+        "enabled": true
       }
     ]
   },

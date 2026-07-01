@@ -120,7 +120,7 @@ async function loadConversationsFromDB() {
         tags: convData.tags || [],
 
         // ✅ DEVICE: Restaurar sesión asignada
-        sessionId: convData.sessionId || null,
+        sessionId: convData.sessionId || 'session1',
 
         // ✅ Campos de gestión (CRITICAL: restaurar desde DB)
         customName: convData.customName || null,
@@ -266,7 +266,7 @@ function getOrCreateConversation(userId, options = {}) {
       isDeleted: false,
       whatsappNameUpdatedAt: whatsappName ? Date.now() : null,
       // ✅ DEVICE: WhatsApp session that manages this conversation (session1 or session2)
-      sessionId: options.sessionId || null,
+      sessionId: options.sessionId || 'session1',
       createdAt: new Date(),
       updatedAt: new Date()
     };

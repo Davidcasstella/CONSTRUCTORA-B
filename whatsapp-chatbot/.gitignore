@@ -93,3 +93,5 @@ scripts/*.log
 
 # Misc local files
 lsa
+# Google Cloud Service Account
+google-service-account.json

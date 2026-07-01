@@ -333,11 +333,38 @@
   }
 }
 
+/* ============ CALENDAR ============ */
+.calendar-day-cell {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  min-height: 100px;
+  padding: 8px;
+}
+.calendar-day-cell.today {
+  background: rgba(255,140,0,0.06);
+  border: 2px solid #FF8C00;
+}
+.calendar-event-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  user-select: none;
+  /* color and background are set inline per event */
+}
+
 /* ============ DARK MODE ============ */
 body.dark-mode .dashboard-header {
   background: #16213e;
   border-color: #333;
 }
+
 
 body.dark-mode .header-title {
   color: #e0e0e0;
