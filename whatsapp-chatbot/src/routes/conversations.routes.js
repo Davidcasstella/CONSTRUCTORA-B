@@ -2039,6 +2039,11 @@ router.get('/:userId/profile-picture', async (req, res) => {
   try {
     let { userId } = req.params;
     
+    // Si viene con formato "session1:numero", quitarle el prefijo de sesión
+    if (userId.includes(':')) {
+      userId = userId.split(':')[1];
+    }
+    
     // Validar JID
     if (!userId.includes('@')) {
       userId = `${userId}@s.whatsapp.net`;

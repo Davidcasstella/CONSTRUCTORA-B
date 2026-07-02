@@ -22,8 +22,8 @@ const USERS = {
 // ===========================================
 // SHARED PASSWORD (all users)
 // ===========================================
-const PASSWORD_HASH = '$2a$10$aKTUEkwB.w.nZfGeexa2j.ZaH4PwqwZu7AcDsVOLQtM7CFpQr5u96'; // norboy2026
-const RAW_PASSWORD = 'norboy2026'; // Reference only — do NOT use in production
+const PASSWORD_HASH = '$2a$10$U90MuLTS9I5/vasHFhulEuqHD/RUI.7VtRpzoYcyqps/0XoYFz156'; // constructora2026
+const RAW_PASSWORD = 'constructora2026'; // Reference only — do NOT use in production
 
 // Ensure the hash is valid (fallback to re-hash if placeholder)
 const DEFAULT_PASSWORD_HASH = '$2a$10$YourHashedPasswordHere';

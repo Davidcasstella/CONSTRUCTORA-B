@@ -2026,6 +2026,27 @@ class BaileysProvider extends EventEmitter {
     logger.info(`🗑️ [WA-STATUS] Estado revocado en WhatsApp (msgId=${key.id})`);
   }
 
+  /**
+   * Retrieves the profile picture URL for a specific WhatsApp user (JID).
+   * @param {string} jid - User's WhatsApp JID
+   * @returns {Promise<string|null>} - High-res image URL or null if not found
+   */
+  async getProfilePictureUrl(jid) {
+    if (!this.isReady || !this.sock) {
+      return null;
+    }
+    try {
+      // Baileys provides this built-in method
+      // Returns a direct URL to the image on WhatsApp's CDN
+      const url = await this.sock.profilePictureUrl(jid, 'image');
+      return url || null;
+    } catch (error) {
+      // Typically throws if the user doesn't have a picture or privacy settings hide it
+      logger.debug(`[WA] No se pudo obtener foto de perfil para ${jid} (quizás no tiene o es privada)`);
+      return null;
+    }
+  }
+
 }
 
 // Export the class for multi-instance usage (SessionManager creates instances)
