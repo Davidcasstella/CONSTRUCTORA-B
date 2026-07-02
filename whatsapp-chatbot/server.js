@@ -176,6 +176,18 @@ sessionManager.on('session:expired', ({ sessionId, reason }) => {
   }
 });
 
+// ✅ FIX: Handle message delivery failures
+sessionManager.on('session:message-failed', (data) => {
+  logger.error(`[Server] ${data.sessionId} message failed: to=${data.to}, retries=${data.retries}`);
+  io.emit('message-failed', data);
+});
+
+// ✅ FIX: Handle session health issues
+sessionManager.on('session:issue', (data) => {
+  logger.error(`[Server] ${data.sessionId} session issue: ${data.message}`);
+  io.emit('session-issue', data);
+});
+
 // ===========================================
 // PROCESS WHATSAPP MESSAGES (MULTI-SESSION)
 // ===========================================
@@ -186,7 +198,8 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
     logger.info(`   message.body="${message.body?.substring(0, 30)}"`);
     logger.info(`   message.type="${message.type}"`);
 
-    const from = message.from;
+    const rawFrom = message.from;
+    const from = `${sessionId}:${rawFrom}`; // Use composite ID internally
     const body = message.body;
     const type = message.type;
     const pushName = message.pushName || null;
@@ -372,7 +385,7 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
       if (selectedButtonId === 'consent_accept') {
         chatService.setConsentResponse(from, true);
         const client = sessionProvider.getClient();
-        await client.sendMessage(from, { text: '✅ Gracias por aceptar. Procesando su consulta...' });
+        await client.sendMessage(rawFrom, { text: '✅ Gracias por aceptar. Procesando su consulta...' });
         logger.info(`✅ Usuario ${from} aceptó el consentimiento`);
 
         const pendingMessage = chatService.getPendingMessage(from);
@@ -382,7 +395,7 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
           if (response) {
             let responseText = typeof response === 'string' ? response : response.text || '';
             if (responseText) {
-              await client.sendMessage(from, { text: responseText });
+              await client.sendMessage(rawFrom, { text: responseText });
               io.emit('bot-response', {
                 to: from,
                 response: `[Aceptó consentimiento y respondió]: ${responseText.substring(0, 50)}...`,
@@ -391,13 +404,13 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
             }
           }
         } else {
-          await client.sendMessage(from, { text: 'Sumercé, en qué le podemos ayudar?' });
+          await client.sendMessage(rawFrom, { text: 'Sumercé, en qué le podemos ayudar?' });
           io.emit('bot-response', { to: from, response: 'Aceptó consentimiento', chatType, sessionId });
         }
       } else if (selectedButtonId === 'consent_reject') {
         chatService.setConsentResponse(from, false);
         const client = sessionProvider.getClient();
-        await client.sendMessage(from, {
+        await client.sendMessage(rawFrom, {
           text: 'Entendido. Sin el consentimiento no podemos continuar con la conversación. Si cambia de opinión, puede iniciar una nueva conversación.'
         });
         logger.info(`❌ Usuario ${from} rechazó el consentimiento`);
@@ -436,7 +449,7 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
 
         if (consentResponse === 'accept') {
           chatService.setConsentResponse(from, true);
-          await client.sendMessage(from, { text: '✅ Gracias por aceptar. Procesando su consulta...' });
+          await client.sendMessage(rawFrom, { text: '✅ Gracias por aceptar. Procesando su consulta...' });
 
           const pendingMessage = chatService.getPendingMessage(from);
           if (pendingMessage) {
@@ -445,7 +458,7 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
             if (response) {
               let responseText = typeof response === 'string' ? response : response.text || '';
               if (responseText) {
-                await client.sendMessage(from, { text: responseText });
+                await client.sendMessage(rawFrom, { text: responseText });
                 io.emit('bot-response', {
                   to: from,
                   response: `[Aceptó consentimiento y respondió]: ${responseText.substring(0, 50)}...`,
@@ -454,12 +467,12 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
               }
             }
           } else {
-            await client.sendMessage(from, { text: 'Sumercé, en qué le podemos ayudar?' });
+            await client.sendMessage(rawFrom, { text: 'Sumercé, en qué le podemos ayudar?' });
             io.emit('bot-response', { to: from, response: 'Aceptó consentimiento', chatType, sessionId });
           }
         } else {
           chatService.setConsentResponse(from, false);
-          await client.sendMessage(from, {
+          await client.sendMessage(rawFrom, {
             text: 'Entendido. Sin el consentimiento no podemos continuar con la conversación. Si cambia de opinión, puede iniciar una nueva conversación.'
           });
           io.emit('bot-response', { to: from, response: 'Rechazó consentimiento', chatType, sessionId });
@@ -477,9 +490,10 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
     if (type === 'chat' || type === 'conversation') {
       logger.info(`🔄 [${sessionId}] Procesando mensaje de texto con messageProcessor...`);
 
-      const response = await messageProcessor.processIncomingMessage(from, body, {
+      const response = await messageProcessor.processIncomingMessage(from, body, { 
         pushName,
-        whatsappMessageId: message.id
+        whatsappMessageId: message.id,
+        sessionId: sessionId 
       });
 
       if (!response) {
@@ -496,12 +510,12 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
         for (let i = 0; i < bubbles.length; i++) {
           if (i > 0) {
             // Short typing indicator between bubbles (0.8s per ~50 chars)
-            await client.sendPresenceUpdate('composing', from);
+            await client.sendPresenceUpdate('composing', rawFrom);
             const delayMs = Math.min(Math.max(bubbles[i].length * 16, 600), 2000);
             await new Promise(r => setTimeout(r, delayMs));
-            await client.sendPresenceUpdate('paused', from);
+            await client.sendPresenceUpdate('paused', rawFrom);
           }
-          await client.sendMessage(from, { text: bubbles[i] });
+          await client.sendMessage(rawFrom, { text: bubbles[i] });
         }
         logger.info(`✅ [${sessionId}] Respuesta enviada a ${from} (${bubbles.length} burbujas)`);
       } catch (sendError) {
@@ -537,7 +551,8 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
         messageType: type,
         originalMessage: message,
         mediaData: mediaData,
-        whatsappMessageId: message.id
+        whatsappMessageId: message.id,
+        sessionId: sessionId // ✅ BUG 1 FIXED: Pass sessionId to processor
       });
 
       if (!response) {
@@ -551,12 +566,12 @@ sessionManager.on('session:message', async ({ sessionId, message }) => {
         const bubbles = splitIntoBubbles(response);
         for (let i = 0; i < bubbles.length; i++) {
           if (i > 0) {
-            await client.sendPresenceUpdate('composing', from);
+            await client.sendPresenceUpdate('composing', rawFrom);
             const delayMs = Math.min(Math.max(bubbles[i].length * 16, 600), 2000);
             await new Promise(r => setTimeout(r, delayMs));
-            await client.sendPresenceUpdate('paused', from);
+            await client.sendPresenceUpdate('paused', rawFrom);
           }
-          await client.sendMessage(from, { text: bubbles[i] });
+          await client.sendMessage(rawFrom, { text: bubbles[i] });
         }
         logger.info(`✅ [${sessionId}] Respuesta enviada a ${from} (${bubbles.length} burbujas)`);
       } catch (sendError) {

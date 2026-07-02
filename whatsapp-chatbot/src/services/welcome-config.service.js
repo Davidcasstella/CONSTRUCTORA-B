@@ -44,7 +44,7 @@ const DEFAULT_CONFIG = {
       {
         id: 'cn1',
         order: 1,
-        content: '👋 ¡Gracias por escribirnos!\n\n📄 Consulte nuestras políticas de manejo de datos:\n🔒 Política de Protección de Datos Personales:\nhttps://norboy.coop/proteccion-de-datos-personales/\n\n💬 Uso de WhatsApp:\nhttps://www.whatsapp.com/legal\nGracias por contactarnos.',
+        content: '👋 ¡Gracias por escribirnos!\n\n📄 Consulte nuestras políticas de manejo de datos:\n🔒 Política de Protección de Datos Personales:\nhttps://www.whatsapp.com/legal\n\n💬 Uso de WhatsApp:\nhttps://www.whatsapp.com/legal\nGracias por contactarnos.',
         delay: 2,
         enabled: true
       }
@@ -65,7 +65,7 @@ const DEFAULT_CONFIG = {
         id: 'c2',
         type: 'transfer_human',
         label: 'Transferencia a asesor',
-        content: 'El asesor de NORBOY 👩‍💼 encargado de este tema le atenderá en breve...',
+        content: 'El asesor de Constructora G&A 👩‍💼 encargado de este tema le atenderá en breve...',
         delay: 0,
         enabled: true
       },

@@ -492,7 +492,7 @@ function formatContextForLLM(chunks, metadata = {}) {
 
   chunks.forEach((chunk, index) => {
     const relevance = (chunk.similarity * 100).toFixed(1);
-    const source = chunk.source || 'Documento NORBOY';
+    const source = chunk.source || 'Documento Constructora G&A';
 
     if (chunk.isQA && chunk.question && chunk.answer) {
       // Formato estructurado para Q&A
@@ -551,23 +551,10 @@ function evaluateEscalation(searchResult, query) {
     reason = 'user_requested_human';
     confidence = 'high';
   }
-  // 2. No hay chunks encontrados (0 resultados)
-  // ✅ FIX: Solo escalar si realmente hay 0 chunks, NO por quality === 'none'
-  // Antes escalaba cuando quality era 'none' aunque hubiera chunks con score > 0.10
-  else if (chunks.length === 0) {
-    shouldEscalate = true;
-    reason = 'no_relevant_context';
-    confidence = 'high';
-  }
-  // 3. Score MUY bajo (por debajo del umbral mínimo)
-  else if (topSimilarity < RAG_CONFIG.thresholds.escalate) {
-    shouldEscalate = true;
-    reason = 'similarity_below_threshold';
-    confidence = 'high';
-  }
-  // 5. ✅ CAMBIO: Calidad LOW ahora NO escala automáticamente
-  //    Permitir que la IA intente responder con el contexto disponible
-  //    Solo escala si quality === 'none' (ya cubierto arriba)
+  // ✅ FIX: No escalar automáticamente si hay bajo match en documentos (0 chunks o similarity bajo).
+  // La IA tiene configuradas reglas estrictas (ai-rules.json) y puede responder
+  // a peticiones generales como "me das informacion" usando su conocimiento base.
+  // Si realmente no sabe la respuesta, la IA misma redirigirá a agendar visita.
 
   const result = {
     shouldEscalate,

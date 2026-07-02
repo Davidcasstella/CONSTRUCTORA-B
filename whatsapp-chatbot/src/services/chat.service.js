@@ -245,31 +245,6 @@ const generateTextResponse = async (userId, message, options = {}) => {
       return getGreetingResponse();
     }
 
-    // 1.5 ✅ FIX: Detectar solicitud GENERAL de información (antes de llegar al RAG)
-    // Frases como "quiero mas inf", "quiero informacion", "necesito informacion"
-    // el RAG no puede resolverlas porque son demasiado genéricas.
-    // Respondemos con presentación del proyecto para guiar la conversación.
-    const GENERAL_INFO_PATTERNS = [
-      /^(quiero|quisiera|necesito|dame|deme|déme|dáme)\s+(mas\s+)?(inf(ormaci[oó]n|o)?|info|detalles|más)$/i,
-      /^(mas\s+)?(inf(o|ormaci[oó]n)?)$/i,
-      /^quiero\s+saber$/i,
-      /^(mas\s+)?informaci[oó]n\s+(por\s+favor|pls|porfa)?$/i,
-      /^(dame|mé|me)\s+(mas\s+)?info$/i,
-    ];
-    const isGeneralInfoRequest = GENERAL_INFO_PATTERNS.some(p => p.test(normalizedMessage.trim()));
-
-    if (isGeneralInfoRequest) {
-      logger.info('🏗️ Respuesta: Solicitud general de información del proyecto (sin RAG)');
-      return `¡Con mucho gusto! 🏗️ Sobre la *Urbanización Bellavista II* le puedo informar sobre:
-
-💰 *Precios y financiación* – valores, cuotas, subsidios
-🏠 *Características* – habitaciones, áreas, zonas comunes
-📍 *Ubicación* – dónde estamos en Tunja
-📅 *Visita* – agendar cita con asesora
-📌 *Requisitos* – cómo calificar
-
-¿Sobre cuál de estos temas desea que le informemos? 😊`;
-    }
 
     // 2. Detectar comandos de ayuda (no necesita IA)
     if (isHelpCommand(normalizedMessage)) {
@@ -550,21 +525,10 @@ const generateWithAI = async (userId, message, options = {}) => {
         }
       }
 
-      // ✅ CRÍTICO: Si calidad es muy baja, ESCALAR INMEDIATAMENTE
+      // ✅ FIX: No escalar automáticamente si la calidad es muy baja o nula.
+      // Permitir que la IA responda usando su conocimiento base (ai-rules.json).
       if (contextQuality === 'very_low' || contextQuality === 'none') {
-        logger.warn(`⚠️ ESCALACIÓN AUTOMÁTICA: Calidad ${contextQuality} (topScore: ${topScore})`);
-        logger.warn(`   ❌ NO se llamará a IA - Score insuficiente`);
-
-        return {
-          type: 'escalation_no_info',
-          text: contextDetector.MESSAGES.lowConfidence,
-          needsHuman: true,
-          escalation: {
-            reason: 'very_low_keyword_score',
-            priority: 'medium',
-            scores: { topScore, avgScore, quality: contextQuality }
-          }
-        };
+        logger.warn(`⚠️ Calidad ${contextQuality} (topScore: ${topScore}) - pero se enviará a IA para respuesta base`);
       }
 
       // Usar fragmentos encontrados (más eficiente y preciso)
@@ -592,21 +556,9 @@ const generateWithAI = async (userId, message, options = {}) => {
         ? `${relevantContext}\n\n--- Información de documentos ---\n${contextFromSearch}`
         : contextFromSearch;
     } else {
-      // ✅ CRÍTICO: Sin coincidencias = ESCALAR INMEDIATAMENTE
-      // ❌ NO pasar "todo el contenido" a la IA (antes esto causaba invención)
-      logger.warn('⚠️ Sin coincidencias en documentos - ESCALANDO');
-      logger.warn('   ❌ NO se pasará contenido completo a IA');
-
-      return {
-        type: 'escalation_no_info',
-        text: contextDetector.MESSAGES.noInformation,
-        needsHuman: true,
-        escalation: {
-          reason: 'no_matches_in_documents',
-          priority: 'medium',
-          message: 'No se encontraron coincidencias en los documentos disponibles'
-        }
-      };
+      // ✅ FIX: No escalar automáticamente si no hay coincidencias.
+      // Permitir que la IA responda usando su conocimiento base (ai-rules.json).
+      logger.warn('⚠️ Sin coincidencias en documentos - se enviará a IA para usar conocimiento base');
     }
   }
 
@@ -657,7 +609,7 @@ const generateWithAI = async (userId, message, options = {}) => {
   // ✅ IMPORTANTE: Excluir el mensaje de escalación del sistema para evitar bucle infinito
   const ESCALATION_MESSAGE_PATTERNS = [
     'comprendo, sumercé',
-    'el asesor de norboy encargado de este tema le atenderá'
+    'el asesor de constructora g&a encargado de este tema le atenderá'
   ];
 
   // Verificar primero si la respuesta es el mensaje de escalación (para evitar bucle)
@@ -787,10 +739,10 @@ const isHelpCommand = (text) => {
  */
 const getGreetingResponse = () => {
   const greetings = [
-    `Hola! 👋 Somos el equipo NORBOY. Sumercé, en qué le podemos ayudar?`,
-    `Buen día! Somos NORBOY. Sumercé, qué necesita saber?`,
-    `Hola! Aquí el equipo NORBOY 👋 En qué le podemos servir?`,
-    `Saludos! Somos NORBOY. Cuéntenos, en qué le ayudamos?`
+    `Hola! 👋 Somos el equipo de Constructora G&A. Sumercé, en qué le podemos ayudar?`,
+    `Buen día! Somos Constructora G&A. Sumercé, qué necesita saber?`,
+    `Hola! Aquí el equipo de Constructora G&A 👋 En qué le podemos servir?`,
+    `Saludos! Somos Constructora G&A. Cuéntenos, en qué le ayudamos?`
   ];
 
   return greetings[Math.floor(Math.random() * greetings.length)];
@@ -814,7 +766,7 @@ Escríbanos su pregunta, estamos para servirle 👍`;
 /**
  * Mensaje cuando la IA no tiene información suficiente
  */
-const NO_INFO_MESSAGE = 'El asesor de NORBOY 👩‍💼 encargado de este tema le atenderá en breve...';
+const NO_INFO_MESSAGE = 'El asesor de Constructora G&A 👩‍💼 encargado de este tema le atenderá en breve...';
 
 /**
  * ✅ CRÍTICO: FUNCIÓN ELIMINADA - NO MÁS RESPUESTAS INVENTADAS
@@ -860,18 +812,15 @@ const getConsentMessage = (userId) => {
 
   return {
     type: 'consent',
-    text: `👋 ¡Bienvenido a NORBOY!
+    text: `👋 ¡Bienvenido a Constructora G&A!
 
 Para poder asesorarte mejor,
 te solicitamos autorizar el
 tratamiento de tus datos personales.
 
-👉 Conócenos aquí:
-https://norboy.coop/
-
 📄 Consulta nuestras políticas:
 🔒 Política de Protección de Datos Personales:
-https://norboy.coop/proteccion-de-datos-personales/
+https://www.whatsapp.com/legal
 💬 Uso de WhatsApp:
 https://www.whatsapp.com/legal
 
@@ -1022,7 +971,7 @@ const cleanQuestionMarks = (text) => {
 const getEscalationMessage = (escalation) => {
   return {
     type: 'escalation',
-    text: `El asesor de NORBOY 👩‍💼 encargado de este tema le atenderá en breve...`,
+    text: `El asesor de Constructora G&A 👩‍💼 encargado de este tema le atenderá en breve...`,
     needsHuman: true,
     escalation
   };
@@ -1075,13 +1024,13 @@ const buildMessages = (userMessage, history = [], context = '', options = {}, co
       content: promptContext
     });
   } else {
-    // Si no hay contexto de documentos, permitir respuestas más generales sobre NORBOY
+    // Si no hay contexto de documentos, permitir respuestas más generales sobre Constructora G&A
     messages.push({
       role: 'system',
-      content: `CONTEXTO DEL ASISTENTE NORBOY:
-Eres el asistente virtual de NORBOY, una constructora colombiana.
+      content: `CONTEXTO DEL ASISTENTE DE CONSTRUCTORA G&A:
+Eres el asistente virtual de Constructora G&A, una constructora colombiana.
 Tus capacidades incluyen:
-1. Responder preguntas sobre NORBOY (cooperativa, proceso electoral, delegados)
+1. Responder preguntas sobre Constructora G&A (proyectos, servicios, procesos)
 2. Agendar citas (el sistema tiene un flujo especial para esto)
 3. Mostrar citas existentes del usuario
 4. Cancelar citas agendadas
@@ -1102,6 +1051,20 @@ NO respondas sobre temas ajenos a la constructora (ciencia, historia, clima, etc
     messages.push({ role: msg.role, content: msg.content });
   }
 
+  // ✅ Dynamic context reminder: tells the AI what turn of the conversation this is
+  // This prevents greetings and repetition in follow-up messages
+  if (history.length > 0) {
+    const botTurns = history.filter(m => m.role === 'assistant').length;
+    messages.push({
+      role: 'system',
+      content: `RECORDATORIO IMPORTANTE:
+- Esta es la respuesta #${botTurns + 1} en esta conversación (ya hubo ${botTurns} respuesta(s) anterior(es)).
+- NO saludes ni te presentes de nuevo ("Hola", "¡Hola!", "Soy Ángela", etc.). Ya lo hiciste antes.
+- NO repitas información que ya aparece en el historial (precios, subsidios, cuota inicial, etc.) a menos que el cliente lo pida explícitamente.
+- Responde DIRECTAMENTE a lo que el cliente acaba de preguntar, de forma concisa y natural.`
+    });
+  }
+
   // ✅ CRITICAL: Inject AI rules AFTER history but BEFORE user message.
   // This position gives rules maximum priority in the GPT attention window,
   // preventing the model from repeating stale patterns from conversation history.
@@ -1117,6 +1080,7 @@ NO respondas sobre temas ajenos a la constructora (ciencia, historia, clima, etc
 
   return messages;
 };
+
 
 /**
  * Construye un prompt mejorado con fragmentos numerados y scores
@@ -1165,9 +1129,11 @@ INSTRUCCIONES:
     // Baja confianza
     instructions = `
 INSTRUCCIONES:
-- Genera una respuesta cortés basándote en lo poco que haya disponible
-- Sugiere contactar a un asesor si no puedes resolver la duda
-- Formato sugerido: "Sumercé, no encuentro información específica sobre [tema] en los documentos disponibles. Le recomiendo comunicarse con un asesor..."`;
+- No se encontraron fragmentos de documentos específicos adicionales para esta consulta.
+- Utiliza tus reglas base (AI Rules) y el historial de la conversación para entender el contexto y continuar la charla de manera natural.
+- Si el usuario está respondiendo a una pregunta tuya anterior (por ejemplo, con un "sí", "claro", "no"), responde en consecuencia basándote en tu conocimiento general del proyecto.
+- CRÍTICO: Si tu pregunta anterior fue de opción múltiple (ej: "¿Quieres saber los precios o agendar visita?") y el usuario responde "sí", NO VUELVAS A PREGUNTAR QUÉ QUIERE. En lugar de eso, dale la información de AMBAS opciones (dale los precios y luego dile cómo agendar).
+- NO digas que no tienes información a menos que realmente te pregunten algo muy específico que no esté en tus reglas.`;
   }
 
   instructions += `
@@ -1207,7 +1173,36 @@ const getConversationHistory = async (userId) => {
     // Last 30 messages (regardless of time) — gives the AI full context
     const HISTORY_LIMIT = 30;
 
+    // Tags that indicate system/welcome/consent messages — exclude from AI history
+    // so the AI does not learn to repeat greetings or policy messages
+    const EXCLUDED_TAGS = ['welcome', 'consent', 'out_of_hours', 'escalation', 'flow_completed'];
+
+    // Phrases that mark institutional welcome/greeting messages — skip them
+    const WELCOME_PATTERNS = [
+      /bienvenido.*constructora/i,
+      /bienvenida.*constructora/i,
+      /gusto saludarte/i,
+      /en que podemos ayudarte/i,
+      /soy ang[eé]la quintana/i,
+      /gracias por escribirnos/i,
+      /pol[ií]ticas.*tratamiento/i,
+      /protecci[oó]n de datos personales/i,
+      /aceptas las pol[ií]ticas/i,
+    ];
+
     const allMessages = conversation.messages
+      // Remove system/welcome/consent tagged messages
+      .filter(msg => {
+        // Exclude messages with system tags
+        if (msg.tag && EXCLUDED_TAGS.includes(msg.tag)) return false;
+        if (msg.messageType && EXCLUDED_TAGS.includes(msg.messageType)) return false;
+        // Exclude welcome-pattern bot messages
+        if (msg.sender === 'bot') {
+          const text = msg.message || '';
+          if (WELCOME_PATTERNS.some(p => p.test(text))) return false;
+        }
+        return true;
+      })
       .map(msg => ({
         role: (msg.sender === 'bot' || msg.sender === 'admin') ? 'assistant' : 'user',
         content: msg.message
@@ -1223,6 +1218,7 @@ const getConversationHistory = async (userId) => {
     return [];
   }
 };
+
 
 /**
  * Obtiene información por categoría

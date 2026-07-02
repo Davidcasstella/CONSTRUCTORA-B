@@ -29,25 +29,67 @@ class AppointmentFlow extends BaseFlow {
     // Initial prompt — no input yet
     if (!input) {
       return {
-        message: '¡Claro! Te ayudaré a agendar una cita.\n\n¿Para qué fecha y hora te gustaría agendar?\n_(Ej: mañana a las 3pm, el viernes a las 10:00, el próximo martes a las 11am)_'
+        message: '¡Claro! Te ayudaré a agendar una cita. Las visitas se pueden realizar:\n- *Lunes, miércoles y viernes*: 8:00 a.m. a 10:30 a.m. y de 3:00 p.m. a 4:00 p.m.\n- *Sábados*: 7:30 a.m. a 10:00 a.m.\n\n¿Para qué fecha y hora te gustaría agendar?'
       };
     }
 
     logger.info(`[AppointmentFlow] Parsing date input: "${input}"`);
 
-    // Use chrono-node Spanish parser with a forward-looking reference date
-    // Setting forwardDate=true ensures "martes" refers to NEXT Tuesday, not last Tuesday
-    const parsedResults = chrono.es.parse(input, new Date(), { forwardDate: true });
+    // Check if we have a pending date to use as reference
+    let refDate = new Date();
+    if (this.data.pendingDateIso) {
+      refDate = new Date(this.data.pendingDateIso);
+    }
+
+    // Use chrono-node Spanish parser
+    const parsedResults = chrono.es.parse(input, refDate, { forwardDate: true });
 
     if (parsedResults.length === 0) {
       logger.warn(`[AppointmentFlow] Could not parse date from: "${input}"`);
+      
+      // If the input is just a generic affirmation or intent (e.g. from initial flow trigger),
+      // show the initial prompt instead of an error message.
+      const isGeneric = /^(si|sí|claro|quiero|agendar|cita|por supuesto|me interesa|ok|vale)(\s+|$)/i.test(input.trim());
+      
+      if (isGeneric) {
+        return {
+          message: '¡Claro! Te ayudaré a agendar una cita. Las visitas se pueden realizar:\n- *Lunes, miércoles y viernes*: 8:00 a.m. a 10:30 a.m. y de 3:00 p.m. a 4:00 p.m.\n- *Sábados*: 7:30 a.m. a 10:00 a.m.\n\n¿Para qué fecha y hora te gustaría agendar?'
+        };
+      }
+
       return {
-        message: 'No pude entender la fecha y hora. ¿Podrías intentar de nuevo?\n_(Ej: mañana a las 15:00, el próximo lunes a las 10am, el martes 8 a las 2pm)_'
+        message: 'No pude entender la fecha y hora. ¿Podrías intentar de nuevo?\n_(Ej: mañana a las 3pm, el próximo lunes a las 10am)_'
       };
     }
 
-    let parsedDate = parsedResults[0].start.date();
+    const start = parsedResults[0].start;
+    let parsedDate = start.date();
     logger.info(`[AppointmentFlow] Parsed date: ${parsedDate.toISOString()}`);
+    
+    // Check what parts we have
+    const hasExplicitDay = start.isCertain('day') || start.isCertain('weekday') || !!this.data.pendingDateIso;
+    const hasExplicitHour = start.isCertain('hour') || !!this.data.pendingHourIso;
+
+    if (!hasExplicitDay) {
+      this.data.pendingDateIso = parsedDate.toISOString();
+      this.data.pendingHourIso = true;
+      return {
+        message: `Entendido, a las ${parsedDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Bogota' })}. ¿Pero qué día te gustaría asistir?\nRecuerda que atendemos *lunes, miércoles, viernes y sábados*.`
+      };
+    }
+
+    if (!hasExplicitHour) {
+      this.data.pendingDateIso = parsedDate.toISOString();
+      this.data.pendingDayIso = true;
+      return {
+        message: `Perfecto, el ${parsedDate.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Bogota' })}. ¿A qué hora te quedaría bien?\nRecuerda los horarios:\n- Lunes, miércoles y viernes: 8:00am-10:30am o 3:00pm-4:00pm\n- Sábados: 7:30am-10:00am`
+      };
+    }
+
+    // Clear pending state since we have both now
+    delete this.data.pendingDateIso;
+    delete this.data.pendingHourIso;
+    delete this.data.pendingDayIso;
 
     // Validate the date is in the future
     if (parsedDate < new Date()) {
@@ -121,12 +163,14 @@ class AppointmentFlow extends BaseFlow {
     logger.info(`[AppointmentFlow] Booking appointment for ${this.context.userId}: ${this.data.fechaIso} ${this.data.horaIso}`);
 
     try {
+      const userPhone = this.context.userId ? this.context.userId.split('@')[0] : '';
+      
       const result = await googleCalendarService.scheduleAppointment({
         nombre_cliente: this.data.name,
         fecha:          this.data.fechaIso,
         hora:           this.data.horaIso,
         duracion:       this.data.duration,
-        descripcion:    `Cita agendada automáticamente vía WhatsApp para ${this.data.name}`
+        descripcion:    `Cita agendada automáticamente vía WhatsApp para ${this.data.name}\nTeléfono: ${userPhone}`
       });
 
       logger.info(`[AppointmentFlow] ✅ Event created: ${result.eventId} — ${result.link}`);

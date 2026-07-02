@@ -161,7 +161,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          <img src="/Logo-PNG-gya-blanco.png" alt="CONSTRUCTORA G&A Logo" style={{ maxWidth: '80px', height: 'auto', marginBottom: '6px' }} />
+          <img src="/LOGOS_CONSTRUCTORA.jpeg" alt="CONSTRUCTORA G&A Logo" style={{ maxWidth: '80px', height: 'auto', marginBottom: '6px' }} />
           <div className="sidebar-logo-text">CONSTRUCTORA G&A</div>
           <div className="sidebar-logo-subtitle">Chatbot WhatsApp</div>
         </div>

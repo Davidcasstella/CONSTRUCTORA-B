@@ -310,7 +310,11 @@ function getOrCreateConversation(userId, options = {}) {
  */
 function extractPhoneNumber(userId) {
   if (!userId) return '';
-  const beforeAt = userId.split('@')[0];
+  let cleanId = userId;
+  if (cleanId.includes(':')) {
+    cleanId = cleanId.split(':')[1];
+  }
+  const beforeAt = cleanId.split('@')[0];
   let cleaned = beforeAt.replace(/^whatsapp:/i, '');
 
   if (cleaned.length > 13) {
@@ -423,6 +427,8 @@ function resetConversation(userId) {
     customName: oldConversation.customName || null,
     isDeleted: false, // Al reiniciar, 'revivimos' el chat si estaba borrado
     whatsappNameUpdatedAt: oldConversation.whatsappNameUpdatedAt || null,
+    // ✅ DEVICE: Preserve which session manages this conversation across cycles
+    sessionId: oldConversation.sessionId || 'session1',
     updatedAt: new Date()
   };
 
@@ -716,10 +722,26 @@ function updateSessionId(userId, sessionId) {
   if (!userId || !sessionId) return;
   const conversation = conversationsCache.get(userId);
   if (!conversation) return;
+  
+  let changed = false;
+  
   if (conversation.sessionId !== sessionId) {
     conversation.sessionId = sessionId;
-    persistConversation(conversation);
+    changed = true;
     logger.debug(`📱 [SESSION] ${userId} asignado a ${sessionId}`);
+  }
+  
+  if (!conversation.sessionIds) {
+    conversation.sessionIds = [conversation.sessionId].filter(Boolean);
+  }
+  
+  if (!conversation.sessionIds.includes(sessionId)) {
+    conversation.sessionIds.push(sessionId);
+    changed = true;
+  }
+  
+  if (changed) {
+    persistConversation(conversation);
   }
 }
 

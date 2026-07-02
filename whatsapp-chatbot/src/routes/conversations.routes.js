@@ -323,7 +323,7 @@ router.post('/:userId/take', requireAuth, (req, res) => {
     const advisorData = {
       id: req.user.username,
       name: req.user.username,
-      email: `${req.user.username}@norboy.coop`
+      email: `${req.user.username}@constructora.com`
     };
 
     logger.info(`${advisorData.name} solicitando tomar conversación: ${userId}`);
@@ -501,7 +501,7 @@ router.post('/:userId/send-message', requireAuth, async (req, res) => {
     const advisor = {
       id: req.user.username,
       name: req.user.username,
-      email: `${req.user.username}@norboy.coop`
+      email: `${req.user.username}@constructora.com`
     };
 
     logger.info(`📨 Enviando mensaje de ${advisor.name} a ${userId}`);
@@ -555,7 +555,7 @@ router.post('/:userId/reactivate-bot', requireAuth, async (req, res) => {
     const advisor = {
       id: req.user.username,
       name: req.user.username,
-      email: `${req.user.username}@norboy.coop`
+      email: `${req.user.username}@constructora.com`
     };
 
     logger.info(`🔄 Reactivando bot para ${userId} por ${advisor.name}`);
@@ -592,7 +592,7 @@ router.post('/:userId/deactivate-bot', requireAuth, async (req, res) => {
     const advisor = {
       id: req.user.username,
       name: req.user.username,
-      email: `${req.user.username}@norboy.coop`
+      email: `${req.user.username}@constructora.com`
     };
 
     logger.info(`🔴 Desactivando bot manualmente para ${userId} por ${advisor.name}`);
@@ -729,7 +729,8 @@ router.get('/:userId/messages', requireAuth, async (req, res) => {
             mediaUrl: msg.content?.mediaUrl || null,
             fileName: msg.content?.fileName || null,
             mimeType: msg.content?.mimeType || null,
-            fileSize: msg.content?.fileSize || null
+            fileSize: msg.content?.fileSize || null,
+            sessionId: msg.metadata?.sessionId || 'session1'
           };
         });
 
@@ -1507,7 +1508,7 @@ router.post('/:userId/send-media', requireAuth, async (req, res) => {
     const advisor = {
       id: req.user.username,
       name: req.user.username,
-      email: `${req.user.username}@norboy.coop`
+      email: `${req.user.username}@constructora.com`
     };
 
     logger.info(`📨 Enviando mensaje multimedia de ${advisor.name} a ${userId}`);
@@ -1953,7 +1954,8 @@ router.get('/:userId/whatsapp-messages', requireAuth, async (req, res) => {
           fileSize: msg.content?.fileSize || null,
           mimeType: msg.content?.mimeType || null,
           // ✅ NUEVO: ReplyTo para UI
-          replyTo: msg.metadata?.replyTo || null
+          replyTo: msg.metadata?.replyTo || null,
+          sessionId: msg.metadata?.sessionId || 'session1'
         };
         });
         source = 'dynamodb';
@@ -1984,7 +1986,8 @@ router.get('/:userId/whatsapp-messages', requireAuth, async (req, res) => {
           fileSize: msg.fileSize || null,
           mimeType: msg.mimeType || null,
           // ✅ NUEVO: ReplyTo para UI (memoria)
-          replyTo: msg.replyTo || null
+          replyTo: msg.replyTo || null,
+          sessionId: msg.sessionId || 'session1'
         }));
         source = 'memory';
         logger.info(`📜 ${messages.length} mensajes cargados desde MEMORIA (fallback)`);

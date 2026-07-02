@@ -35,10 +35,28 @@ class CancelAppointmentFlow extends BaseFlow {
         inThreeMonths.toISOString()
       );
 
-      // Filter only events that have a dateTime (not all-day)
-      const upcoming = (events || []).filter(
-        (e) => e.start && (e.start.dateTime || e.start.date)
-      );
+      const userPhone = this.context.userId ? this.context.userId.split('@')[0] : '';
+      const userName = this.context.name ? this.context.name.toLowerCase() : '';
+
+      // Filter only events that have a dateTime (not all-day) AND belong to this user
+      const upcoming = (events || []).filter((e) => {
+        if (!e.start || !(e.start.dateTime || e.start.date)) return false;
+        
+        const desc = (e.description || '').toLowerCase();
+        const summary = (e.summary || '').toLowerCase();
+        
+        // 1. Match exact phone number (most reliable for new appointments)
+        if (userPhone && (desc.includes(userPhone) || summary.includes(userPhone))) {
+          return true;
+        }
+        
+        // 2. Fallback: match WhatsApp pushName (for older appointments)
+        if (userName && (desc.includes(userName) || summary.includes(userName))) {
+          return true;
+        }
+
+        return false;
+      });
 
       if (upcoming.length === 0) {
         const msg =

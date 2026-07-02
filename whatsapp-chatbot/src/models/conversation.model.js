@@ -157,7 +157,8 @@ class Conversation {
       updatedAt: this.updatedAt,
       lastMessageAt: this.lastMessageAt,
       customName: this.customName,
-      isDeleted: this.isDeleted
+      isDeleted: this.isDeleted,
+      sessionId: this.sessionId || 'session1'
     };
   }
 

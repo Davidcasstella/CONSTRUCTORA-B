@@ -29,7 +29,7 @@ export default function LoginPage() {
     <div className="login-overlay">
       <div className="login-card">
         <div className="login-logo">
-          <img src="/Logo-PNG-gya-blanco.png" alt="CONSTRUCTORA G&A Logo" style={{ maxWidth: '100px', height: 'auto', marginBottom: '15px', background: '#37474F', borderRadius: '8px', padding: '10px' }} />
+          <img src="/LOGOS_CONSTRUCTORA.jpeg" alt="CONSTRUCTORA G&A Logo" style={{ maxWidth: '100px', height: 'auto', marginBottom: '15px', background: '#37474F', borderRadius: '8px', padding: '10px' }} />
           <h2>CONSTRUCTORA G&A Chatbot</h2>
           <p>Inicia sesión para continuar</p>
         </div>

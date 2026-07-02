@@ -77,6 +77,7 @@ cookies.txt
 baileys_auth/
 baileys_auth_backup*/
 baileys_auth_session1/
+baileys_auth_session2/
 
 # Frontend build, env & dependencies
 frontend/.env
@@ -93,5 +94,6 @@ scripts/*.log
 
 # Misc local files
 lsa
+
 # Google Cloud Service Account
 google-service-account.json

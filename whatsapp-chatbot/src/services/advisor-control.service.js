@@ -82,24 +82,11 @@ async function sendAdvisorMessage(userId, advisorData, message, replyTo = null) 
     // Construir opciones de reply si es necesario
     let sendOptions = {};
     if (replyTo && replyTo.id) {
-      // Determinar si el mensaje original era nuestro (fromMe)
-      // Si el sender NO es 'user', entonces fue enviado por nosotros (admin o bot)
-      const isFromMe = replyTo.sender !== 'user';
-
-      const remoteJid = conversation.phoneNumber.includes('@')
-        ? conversation.phoneNumber
-        : conversation.phoneNumber + '@s.whatsapp.net';
-
-      sendOptions.quoted = {
-        key: {
-          remoteJid: remoteJid,
-          fromMe: isFromMe,
-          id: replyTo.id
-        },
-        message: {
-          conversation: replyTo.message || ''
-        }
-      };
+      // Como no tenemos el objeto original completo de Baileys,
+      // forzar un objeto quoted causa status: 0 (rechazo del servidor de WhatsApp).
+      // En su lugar, simulamos el reply añadiendo el texto citado al mensaje.
+      const quoteText = replyTo.message ? `> ${replyTo.message.split('\\n').join('\\n> ')}\n\n` : '';
+      message = `${quoteText}${message}`;
     }
 
     // ID por defecto (fallback)

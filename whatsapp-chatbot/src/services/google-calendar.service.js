@@ -3,34 +3,56 @@ const logger = require('../utils/logger');
 const fs = require('fs');
 const path = require('path');
 
+// Service initialized at startup — restart server if .env changes
 class GoogleCalendarService {
   constructor() {
     this.keyFilePath = process.env.GOOGLE_SERVICE_ACCOUNT_PATH || path.join(process.cwd(), 'google-service-account.json');
-    this.calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
-    this.timeZone = process.env.GOOGLE_CALENDAR_TIMEZONE || 'America/Bogota';
+    // Trim to handle whitespace-only values like "GOOGLE_CALENDAR_ID= "
+    const rawCalendarId = (process.env.GOOGLE_CALENDAR_ID || '').trim();
+    this.calendarId = rawCalendarId || 'primary';
+    this.timeZone = (process.env.GOOGLE_CALENDAR_TIMEZONE || 'America/Bogota').trim();
     this.calendar = null;
     this.initialized = false;
 
+    logger.info(`[GoogleCalendarService] Config → calendarId: "${this.calendarId}", timeZone: "${this.timeZone}", keyFile: "${this.keyFilePath}"`);
     this.initAuth();
   }
 
   initAuth() {
     try {
-      if (!fs.existsSync(this.keyFilePath)) {
-        logger.warn(`Google Calendar Service Account key not found at ${this.keyFilePath}`);
+      const base64Credentials = (process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || '').trim();
+
+      let auth;
+
+      if (base64Credentials) {
+        // Priority: Use Base64-encoded credentials from env var (cloud/AWS deployment)
+        const credentialsJson = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+        const credentials = JSON.parse(credentialsJson);
+
+        auth = new google.auth.GoogleAuth({
+          credentials,
+          scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar'],
+        });
+
+        logger.info('[GoogleCalendarService] Auth initialized from GOOGLE_SERVICE_ACCOUNT_BASE64 env var.');
+      } else if (fs.existsSync(this.keyFilePath)) {
+        // Fallback: Use JSON file on disk (local development)
+        auth = new google.auth.GoogleAuth({
+          keyFile: this.keyFilePath,
+          scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar'],
+        });
+
+        logger.info(`[GoogleCalendarService] Auth initialized from key file: ${this.keyFilePath}`);
+      } else {
+        logger.warn(`[GoogleCalendarService] No credentials found. Set GOOGLE_SERVICE_ACCOUNT_BASE64 env var or provide key file at ${this.keyFilePath}`);
         return;
       }
 
-      const auth = new google.auth.GoogleAuth({
-        keyFile: this.keyFilePath,
-        scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar'],
-      });
-
       this.calendar = google.calendar({ version: 'v3', auth });
       this.initialized = true;
-      logger.info('Google Calendar Service initialized with Service Account.');
+      logger.info('[GoogleCalendarService] ✅ Service ready.');
     } catch (error) {
-      logger.error('Failed to initialize Google Calendar Service:', error);
+      logger.error('[GoogleCalendarService] Failed to initialize:', error);
     }
   }
 
@@ -93,10 +115,19 @@ class GoogleCalendarService {
       };
 
       // 4. Insertar en Google Calendar
+      logger.info(`[GoogleCalendarService] Creating event on calendarId="${this.calendarId}"`, {
+        summary: event.summary,
+        start: event.start.dateTime,
+        end: event.end.dateTime,
+        timeZone: this.timeZone,
+      });
+
       const response = await this.calendar.events.insert({
         calendarId: this.calendarId,
         requestBody: event,
       });
+
+      logger.info(`[GoogleCalendarService] ✅ Event created successfully: id=${response.data.id}, link=${response.data.htmlLink}`);
 
       return {
         success: true,

@@ -397,7 +397,7 @@ async function generateMonthlyPDF(month, year, period = null) {
         doc.save();
         doc.moveTo(PAGE_LEFT, 725).lineTo(PAGE_RIGHT, 725).lineWidth(0.5).stroke(BRAND.border);
         doc.fillColor(BRAND.textMuted).fontSize(7).font('Helvetica');
-        drawText('Este reporte fue generado automaticamente por el sistema NORBOY.',
+        drawText('Este reporte fue generado automaticamente por el sistema Constructora G&A.',
           PAGE_LEFT, 728, { width: PAGE_WIDTH * 0.7, align: 'left' });
         drawText(`Pagina ${currentPage}`,
           PAGE_LEFT, 728, { width: PAGE_WIDTH, align: 'right' });
@@ -439,7 +439,7 @@ async function generateMonthlyPDF(month, year, period = null) {
 
       const titleX = hasLogo ? PAGE_LEFT + 95 : PAGE_LEFT + 20;
       doc.fillColor(BRAND.white).fontSize(22).font('Helvetica-Bold');
-      drawText('NORBOY', titleX, cursorY + 15, { width: 400 });
+      drawText('Constructora G&A', titleX, cursorY + 15, { width: 400 });
       doc.fillColor('#d4edda').fontSize(11).font('Helvetica');
       drawText('Reporte Mensual de Estadisticas', titleX, cursorY + 42, { width: 400 });
       doc.fillColor('#a8d8b8').fontSize(10).font('Helvetica');

@@ -83,7 +83,7 @@ const activeFlows = new Map();
  * @param {Object} initialData - Datos iniciales
  * @returns {Promise<Object>} Primer mensaje del flujo
  */
-const startFlow = async (userId, flowName, initialData = {}) => {
+const startFlow = async (userId, flowName, initialData = {}, initialInput = null) => {
   const flow = getFlow(flowName, { userId, ...initialData });
 
   if (!flow) {
@@ -97,10 +97,10 @@ const startFlow = async (userId, flowName, initialData = {}) => {
     startedAt: new Date()
   });
 
-  logger.info(`Flujo iniciado: ${flowName} para ${userId}`);
+  logger.info(`Flujo iniciado: ${flowName} para ${userId} con initialInput=${initialInput ? 'yes' : 'no'}`);
 
-  // Obtener mensaje inicial del flujo
-  const result = await flow.start();
+  // Obtener mensaje inicial del flujo (pasando initialInput)
+  const result = await flow.start(initialInput);
 
   // ✅ CRITICAL FIX: If the flow completed or cancelled during start()
   // (e.g. list-appointments with no events, or with instant completion),

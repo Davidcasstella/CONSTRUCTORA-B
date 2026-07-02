@@ -235,7 +235,7 @@ export default function ConversationsPage() {
 
   // Conversations — restore from cache if available
   const [conversations, setConversations] = useState(_convsCache.data || []);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('device1');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasMoreConvs, setHasMoreConvs] = useState(_convsCache.hasMore || false);
   const [convsOffset, setConvsOffset] = useState(0);
@@ -1234,8 +1234,8 @@ export default function ConversationsPage() {
       if (isGroup) return false;
 
       // ✅ Device filters: show only conversations from that session
-      if (filter === 'device1') return c.sessionId === 'session1';
-      if (filter === 'device2') return c.sessionId === 'session2';
+      if (filter === 'device1') return c.sessionIds?.includes('session1') || c.sessionId === 'session1';
+      if (filter === 'device2') return c.sessionIds?.includes('session2') || c.sessionId === 'session2';
       
       if (filter === 'pending') return c.status === 'pending_advisor' || c.status === 'out_of_hours';
       if (filter === 'advisor') return c.status === 'advisor_handled';
@@ -1252,7 +1252,7 @@ export default function ConversationsPage() {
   // ===========================
   // RENDER MESSAGE
   // ===========================
-  function renderMessage(msg) {
+  function renderMessage(msg, filterType) {
     // Safety: ensure msg.message is always a string (not a nested object)
     if (msg.message && typeof msg.message === 'object') {
       msg = { ...msg, message: msg.message.message || msg.message.body || JSON.stringify(msg.message) };
@@ -1272,6 +1272,18 @@ export default function ConversationsPage() {
     const timeStr = msg.timestamp
       ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '';
+      
+    // DEVICE BADGE
+    let deviceBadge = null;
+    if (filterType === 'all') {
+      const msgSessionId = msg.sessionId || msg.metadata?.sessionId;
+      if (msgSessionId === 'session1') {
+        deviceBadge = <span className="message-device-badge session1" style={{fontSize: '0.7em', padding: '2px 4px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0284c7', marginLeft: '6px'}}>📱 Disp. 1</span>;
+      } else if (msgSessionId === 'session2') {
+        deviceBadge = <span className="message-device-badge session2" style={{fontSize: '0.7em', padding: '2px 4px', borderRadius: '4px', backgroundColor: '#f3e8ff', color: '#9333ea', marginLeft: '6px'}}>📲 Disp. 2</span>;
+      }
+    }
+    
     let resolvedUrl = normalizeMediaUrl(msg.mediaUrl);
     // Fallback: build URL from message ID only for REAL Baileys IDs (not frontend-generated ones)
     const isBaileysId = msg.id && !msg.id.startsWith('adv_media_') && !msg.id.startsWith('msg_') && !msg.id.startsWith('adv_');
@@ -1353,6 +1365,7 @@ export default function ConversationsPage() {
           {content}
           <div className="message-meta">
             <span className="message-time">{timeStr}</span>
+            {deviceBadge}
             {senderClass !== 'user' && (
               <span className="message-checks">
                 <svg className={`message-check double ${msg.read ? 'read' : ''}`} viewBox="0 0 16 11" width="16" height="11">
@@ -1390,7 +1403,14 @@ export default function ConversationsPage() {
       );
     }
 
-    messages.forEach(msg => {
+    let filteredMessages = messages;
+    if (filter === 'device1') {
+      filteredMessages = messages.filter(msg => (msg.sessionId || msg.metadata?.sessionId) === 'session1');
+    } else if (filter === 'device2') {
+      filteredMessages = messages.filter(msg => (msg.sessionId || msg.metadata?.sessionId) === 'session2');
+    }
+
+    filteredMessages.forEach(msg => {
       const msgDate = msg.timestamp ? new Date(msg.timestamp).toLocaleDateString() : '';
       if (msgDate && msgDate !== lastDate) {
         elements.push(
@@ -1400,7 +1420,7 @@ export default function ConversationsPage() {
         );
         lastDate = msgDate;
       }
-      elements.push(renderMessage(msg));
+      elements.push(renderMessage(msg, filter));
     });
 
     return elements;
@@ -1453,7 +1473,6 @@ export default function ConversationsPage() {
             </div>
             <div className="conv-filter-row">
               {[
-                { key: 'all', label: 'Todos' },
                 { key: 'device1', label: '📱 Disp. 1' },
                 { key: 'device2', label: '📲 Disp. 2' },
                 { key: 'pending', label: '⚠️ Pendientes' },

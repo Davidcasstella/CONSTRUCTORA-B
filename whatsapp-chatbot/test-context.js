@@ -1,3 +1,7 @@
-const contextDetector = require('./src/services/context-detector.service.js');
+const contextDetector = require('./src/services/context-detector.service');
 
-console.log(contextDetector.detectContext('quiero agendar una cita'));
+const result = contextDetector.detectContext('si quiero');
+console.log('Result for "si quiero":', result);
+
+const result2 = contextDetector.detectContext('quiero agendar');
+console.log('Result for "quiero agendar":', result2);

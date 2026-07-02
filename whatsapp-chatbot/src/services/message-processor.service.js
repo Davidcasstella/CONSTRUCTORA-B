@@ -27,6 +27,28 @@ const welcomeConfigService = require('./welcome-config.service'); // Welcome con
 const contextDetector = require('./context-detector.service'); // Detector de intenciones
 const aiProvider = require('../providers/ai'); // AI provider for intent analysis
 
+// ✅ NUEVO: Helper function to get the correct provider instance based on session
+function getProviderForUser(userId) {
+  const conversation = conversationStateService.getConversation(userId);
+  const sessionId = conversation?.sessionId;
+  
+  const actualJid = userId.includes(':') ? userId.split(':')[1] : userId;
+  
+  let session = whatsappProvider;
+  if (sessionId) {
+    const manager = whatsappProvider.getSessionManager();
+    session = manager.getSession(sessionId) || whatsappProvider;
+  }
+  
+  return {
+    sendTyping: () => session.sendTyping(actualJid),
+    clearTyping: () => session.clearTyping(actualJid),
+    sendMessage: (_, text, opts) => session.sendMessage(actualJid, text, opts),
+    sendMediaMessage: (_, mediaObj) => session.sendMediaMessage(actualJid, mediaObj),
+    getClient: () => session.getClient()
+  };
+}
+
 // ✅ NUEVO: Socket.IO para emitir eventos de escalación al dashboard
 let io = null;
 
@@ -41,7 +63,7 @@ function setSocketIO(socketIOInstance) {
 // ===========================================
 // MENSAJAGES DEL SISTEMA
 // ===========================================
-const NO_INFO_MESSAGE = 'El asesor de NORBOY 👩‍💼 encargado de este tema le atenderá en breve...';
+const NO_INFO_MESSAGE = 'El asesor de Constructora G&A 👩‍💼 encargado de este tema le atenderá en breve...';
 
 /**
  * ✅ HELPER: Sends a message with optional typing indicator and delay.
@@ -61,13 +83,19 @@ async function sendWithTypingDelay(userId, text, delaySec, opts = {}) {
   const effectiveDelay = (delaySec || 0) * 1000 * speedMult;
 
   if (effectiveDelay > 0) {
-    await whatsappProvider.sendTyping(userId);
+    await getProviderForUser(userId).sendTyping(userId);
     await new Promise(r => setTimeout(r, effectiveDelay));
-    await whatsappProvider.clearTyping(userId);
+    await getProviderForUser(userId).clearTyping(userId);
   }
 
-  await whatsappProvider.sendMessage(userId, text);
-  await saveMessage(userId, text, 'bot', tag);
+  const result = await getProviderForUser(userId).sendMessage(userId, text);
+  
+  let msgId = null;
+  if (result && result.key && result.key.id) {
+    msgId = result.key.id;
+  }
+  
+  await saveMessage(userId, text, 'bot', { tag, whatsappMessageId: msgId });
 }
 
 /**
@@ -168,16 +196,17 @@ const USE_NEW_MENU_FLOW = process.env.USE_NEW_MENU_FLOW === 'true';
  */
 async function processIncomingMessage(userId, message, options = {}) {
   try {
-    const { pushName, realPhoneNumber, mediaData } = options;
-    logger.info(`📨 Procesando mensaje de ${userId}: "${message.substring(0, 50)}..."`);
+    const { pushName, realPhoneNumber, mediaData, sessionId } = options;
+    logger.info(`📨 Procesando mensaje de ${userId}: "${message.substring(0, 50)}..." [Session: ${sessionId || 'unknown'}]`);
 
     // ✅ NUEVO: Flag para evitar guardar el mismo mensaje dos veces
     let userMessageSaved = false;
 
-    // ✅ CORREGIDO: Obtener o crear conversación CON el nombre de WhatsApp y número real
+    // ✅ CORREGIDO: Obtener o crear conversación CON el nombre de WhatsApp, número real y sessionId
     const conversation = conversationStateService.getOrCreateConversation(userId, {
       whatsappName: pushName,
-      realPhoneNumber: realPhoneNumber
+      realPhoneNumber: realPhoneNumber,
+      sessionId: sessionId // ✅ BUG 2 FIXED: Propagate the session ID
     });
 
     // Actualizar última interacción
@@ -424,7 +453,7 @@ async function processIncomingMessage(userId, message, options = {}) {
                 ? `Hola, ${userName}, soy AntonIA Santos, su asesor en línea`
                 : `Hola, soy AntonIA Santos, su asesor en línea`;
             }
-            await whatsappProvider.sendMessage(userId, saludoMsg);
+            await getProviderForUser(userId).sendMessage(userId, saludoMsg);
             await saveMessage(userId, saludoMsg, 'bot', 'welcome');
 
             // Send additional welcome messages (if configured)
@@ -434,22 +463,22 @@ async function processIncomingMessage(userId, message, options = {}) {
               // ✅ Show typing indicator during the delay
               const effectiveDelay = (wm.delay || 0) * 1000 * speedMult;
               if (effectiveDelay > 0) {
-                await whatsappProvider.sendTyping(userId);
+                await getProviderForUser(userId).sendTyping(userId);
                 await new Promise(r => setTimeout(r, effectiveDelay));
-                await whatsappProvider.clearTyping(userId);
+                await getProviderForUser(userId).clearTyping(userId);
               }
               const wmContent = welcomeConfigService.resolveMessageContent(wm);
 
               // Detect media type and send accordingly
               if ((wm.type === 'image' || wm.type === 'video' || wm.type === 'audio') && wm.mediaUrl) {
-                await whatsappProvider.sendMediaMessage(userId, {
+                await getProviderForUser(userId).sendMediaMessage(userId, {
                   type: wm.type,
                   url: wm.mediaUrl,
                   caption: wmContent || ''
                 });
                 await saveMessage(userId, wmContent || `[${wm.type}]`, 'bot', 'welcome');
               } else {
-                await whatsappProvider.sendMessage(userId, wmContent);
+                await getProviderForUser(userId).sendMessage(userId, wmContent);
                 await saveMessage(userId, wmContent, 'bot', 'welcome');
               }
             }
@@ -504,14 +533,14 @@ async function processIncomingMessage(userId, message, options = {}) {
                 responseText = aiResponse;
               }
               if (responseText) {
-                await whatsappProvider.sendMessage(userId, responseText);
+                await getProviderForUser(userId).sendMessage(userId, responseText);
                 await saveMessage(userId, responseText, 'bot', 'text');
                 logger.info(`✅ Respuesta IA enviada a ${userId} (pregunta en primer mensaje)`);
               }
             } catch (aiError) {
               logger.error(`❌ Error generando respuesta IA: ${aiError.message}`);
               const fallbackMsg = `En qué le podemos servir?`;
-              await whatsappProvider.sendMessage(userId, fallbackMsg);
+              await getProviderForUser(userId).sendMessage(userId, fallbackMsg);
               await saveMessage(userId, fallbackMsg, 'bot', 'system');
             }
 
@@ -540,9 +569,9 @@ async function processIncomingMessage(userId, message, options = {}) {
             // ✅ Show typing indicator during the delay (applies to ALL messages)
             const effectiveDelay = (wm.delay || 0) * 1000 * speedMult;
             if (effectiveDelay > 0) {
-              await whatsappProvider.sendTyping(userId);
+              await getProviderForUser(userId).sendTyping(userId);
               await new Promise(r => setTimeout(r, effectiveDelay));
-              await whatsappProvider.clearTyping(userId);
+              await getProviderForUser(userId).clearTyping(userId);
             }
 
             let wmContent = welcomeConfigService.resolveMessageContent(wm);
@@ -553,14 +582,14 @@ async function processIncomingMessage(userId, message, options = {}) {
 
             // Detect media type and send accordingly
             if ((wm.type === 'image' || wm.type === 'video' || wm.type === 'audio') && wm.mediaUrl) {
-              await whatsappProvider.sendMediaMessage(userId, {
+              await getProviderForUser(userId).sendMediaMessage(userId, {
                 type: wm.type,
                 url: wm.mediaUrl,
                 caption: wmContent || ''
               });
               await saveMessage(userId, wmContent || `[${wm.type}]`, 'bot', 'welcome');
             } else {
-              await whatsappProvider.sendMessage(userId, wmContent);
+              await getProviderForUser(userId).sendMessage(userId, wmContent);
               await saveMessage(userId, wmContent, 'bot', 'welcome');
             }
           }
@@ -595,7 +624,7 @@ async function processIncomingMessage(userId, message, options = {}) {
           ? `Hola, ${fbUserName}, ${resolvedFbContent.replace(/^Hola,?\s*/i, '')}`
           : resolvedFbContent;
       } else {
-        welcomeMsg = `Hola! Somos el equipo NORBOY.\n\nBienvenido/a a nuestro canal de atención.\n\nEn un momento le solicitaremos autorización para el tratamiento de sus datos personales.\n\nMientras tanto, en qué podemos ayudarle?`;
+        welcomeMsg = `Hola! Somos el equipo de Constructora G&A.\n\nBienvenido/a a nuestro canal de atención.\n\nEn un momento le solicitaremos autorización para el tratamiento de sus datos personales.\n\nMientras tanto, en qué podemos ayudarle?`;
       }
 
       // Marcar que ya se envió el saludo
@@ -603,7 +632,7 @@ async function processIncomingMessage(userId, message, options = {}) {
       conversation.interactionCount = 1;
 
       // Enviar saludo
-      await whatsappProvider.sendMessage(userId, welcomeMsg);
+      await getProviderForUser(userId).sendMessage(userId, welcomeMsg);
       await saveMessage(userId, welcomeMsg, 'bot', 'welcome');
 
       logger.info(`✅ Saludo institucional enviado a ${userId}`);
@@ -649,7 +678,7 @@ async function processIncomingMessage(userId, message, options = {}) {
 
             // ENVIAR MENSAJE FINAL SI EXISTE
             if (flowResult.message) {
-              await whatsappProvider.sendMessage(userId, flowResult.message);
+              await getProviderForUser(userId).sendMessage(userId, flowResult.message);
               await saveMessage(userId, flowResult.message, 'bot', 'flow_completed');
             }
 
@@ -714,24 +743,24 @@ async function processIncomingMessage(userId, message, options = {}) {
                       });
                     }
                   } else if (pendingResponseText) {
-                    await whatsappProvider.sendMessage(userId, pendingResponseText);
+                    await getProviderForUser(userId).sendMessage(userId, pendingResponseText);
                     await saveMessage(userId, pendingResponseText, 'bot', 'text');
                     logger.info(`✅ Respuesta a pregunta libre enviada a ${userId}`);
                   }
                 } catch (freeQError) {
                   logger.error(`❌ Error procesando pregunta libre pendiente: ${freeQError.message}`);
-                  await whatsappProvider.sendMessage(userId, flowResult.message);
+                  await getProviderForUser(userId).sendMessage(userId, flowResult.message);
                   await saveMessage(userId, flowResult.message, 'bot', 'system');
                 }
               } else {
                 // No pending question → send data policy + "¿Qué duda tiene sumercé?"
-                await whatsappProvider.sendMessage(userId, flowResult.message);
+                await getProviderForUser(userId).sendMessage(userId, flowResult.message);
                 await saveMessage(userId, flowResult.message, 'bot', 'consent');
                 conversation.consentMessageSent = true;
 
                 // Send follow-up question after a short delay
                 if (flowResult.followUpMessage) {
-                  await whatsappProvider.sendMessage(userId, flowResult.followUpMessage);
+                  await getProviderForUser(userId).sendMessage(userId, flowResult.followUpMessage);
                   await saveMessage(userId, flowResult.followUpMessage, 'bot', 'system');
                 }
               }
@@ -809,14 +838,14 @@ async function processIncomingMessage(userId, message, options = {}) {
                 responseText = aiResponse;
               }
               if (responseText) {
-                await whatsappProvider.sendMessage(userId, responseText);
+                await getProviderForUser(userId).sendMessage(userId, responseText);
                 await saveMessage(userId, responseText, 'bot', 'text');
                 logger.info(`✅ Respuesta IA enviada a ${userId} (pregunta libre en flujo activo)`);
               }
             } catch (aiError) {
               logger.error(`❌ Error generando respuesta IA (pregunta libre): ${aiError.message}`);
               const fallbackMsg = `En qué le podemos servir?`;
-              await whatsappProvider.sendMessage(userId, fallbackMsg);
+              await getProviderForUser(userId).sendMessage(userId, fallbackMsg);
               await saveMessage(userId, fallbackMsg, 'bot', 'system');
             }
 
@@ -825,7 +854,7 @@ async function processIncomingMessage(userId, message, options = {}) {
 
           // ✅ CASO 4: Error en el flujo (opción inválida, respuesta inválida)
           if (flowResult.isError && flowResult.message) {
-            await whatsappProvider.sendMessage(userId, flowResult.message);
+            await getProviderForUser(userId).sendMessage(userId, flowResult.message);
             await saveMessage(userId, flowResult.message, 'bot', 'flow_error');
             return null;
           }
@@ -834,7 +863,7 @@ async function processIncomingMessage(userId, message, options = {}) {
           logger.info(`>>> ENTRANDO A CASO 5. flowResult: ${JSON.stringify(flowResult)}`);
           if (flowResult.message) {
             logger.info(">>> ENVIANDO A WHATSAPP");
-            await whatsappProvider.sendMessage(userId, flowResult.message);
+            await getProviderForUser(userId).sendMessage(userId, flowResult.message);
             logger.info(">>> GUARDANDO MENSAJE BOT");
             await saveMessage(userId, flowResult.message, 'bot', 'flow');
 
@@ -975,14 +1004,14 @@ async function processIncomingMessage(userId, message, options = {}) {
         // Nota: El mensaje pendiente se manejará cuando acepte
 
         // Mensaje de datos personales (informativo, sin esperar respuesta)
-        const consentMsg = `👋 ¡Gracias por escribirnos!\n\n📄 Consulte nuestras políticas de manejo de datos:\n🔒 Política de Protección de Datos Personales:\nhttps://norboy.coop/proteccion-de-datos-personales/\n\n💬 Uso de WhatsApp:\nhttps://www.whatsapp.com/legal\nGracias por contactarnos.`;
+        const consentMsg = `👋 ¡Gracias por escribirnos!\n\n📄 Consulte nuestras políticas de manejo de datos:\n🔒 Política de Protección de Datos Personales:\nhttps://www.whatsapp.com/legal\n\n💬 Uso de WhatsApp:\nhttps://www.whatsapp.com/legal\nGracias por contactarnos.`;
 
         // Marcar que se solicitó consentimiento
         conversation.consentMessageSent = true;
         conversation.interactionCount = 2;
 
         // Enviar mensaje de consentimiento
-        await whatsappProvider.sendMessage(userId, consentMsg);
+        await getProviderForUser(userId).sendMessage(userId, consentMsg);
         await saveMessage(userId, consentMsg, 'bot', 'consent');
 
         logger.info(`✅ Mensaje de consentimiento enviado a ${userId}`);
@@ -1027,7 +1056,7 @@ async function processIncomingMessage(userId, message, options = {}) {
 
         // Enviar confirmación
         const confirmationMsg = `¡Perfecto, sumercé! 👍\n\nAhora puedo asesorarte.\n\n¿En qué puedo ayudarte?`;
-        await whatsappProvider.sendMessage(userId, confirmationMsg);
+        await getProviderForUser(userId).sendMessage(userId, confirmationMsg);
         await saveMessage(userId, confirmationMsg, 'bot', { messageType: 'system' });
 
         return null; // No procesar más este mensaje
@@ -1045,7 +1074,7 @@ async function processIncomingMessage(userId, message, options = {}) {
 
         // Enviar confirmación y continuar
         const confirmationMsg = `Entendido, sumercé. 👍\n\n¿En qué puedo ayudarte?`;
-        await whatsappProvider.sendMessage(userId, confirmationMsg);
+        await getProviderForUser(userId).sendMessage(userId, confirmationMsg);
         await saveMessage(userId, confirmationMsg, 'bot', { messageType: 'system' });
 
         return null;
@@ -1285,7 +1314,7 @@ async function processIncomingMessage(userId, message, options = {}) {
         const flowResponse = await flowManager.startFlow(userId, 'appointment', {
           whatsappName: options.pushName,
           customName: conversation.customName
-        });
+        }, message); // ✅ Pass the message so if it contains a date, it doesn't ask twice.
         if (flowResponse && (flowResponse.message || flowResponse.text)) {
           await sendWithTypingDelay(userId, flowResponse.message || flowResponse.text, 1, { tag: 'flow' });
         }
@@ -1461,7 +1490,7 @@ async function processIncomingMessage(userId, message, options = {}) {
       logger.info(`   → waitingForHuman: true`);
 
       // Enviar mensaje de fallback (SOLO UNA VEZ)
-      await whatsappProvider.sendMessage(userId, fallbackMsg);
+      await getProviderForUser(userId).sendMessage(userId, fallbackMsg);
 
       // Guardar mensajes (solo si no se guardó antes)
       if (!userMessageSaved) {
@@ -1541,7 +1570,7 @@ async function processIncomingMessage(userId, message, options = {}) {
       conversation.needs_human = true;
       conversation.needsHumanReason = 'processing_error';
 
-      await whatsappProvider.sendMessage(userId, fallbackMsg);
+      await getProviderForUser(userId).sendMessage(userId, fallbackMsg);
       // Removed userMessageSaved check because it is out of scope here.
       // If we got to the catch block from the top level, we don't know if it's saved.
       // Safest to just save it anyway or skip saving it if it crashes.
@@ -1724,7 +1753,8 @@ async function saveMessage(userId, message, sender, options = {}) {
       message: messageText,
       timestamp: Date.now(),
       type: messageActualType,
-      direction: sender === 'user' ? 'incoming' : 'outgoing'
+      direction: sender === 'user' ? 'incoming' : 'outgoing',
+      sessionId: conversation.sessionId || 'unknown' // ✅ ADDED: track which device handled this message
     };
 
     // Check for media types that SHOULD have media but might have failed initial download
@@ -1805,6 +1835,7 @@ async function saveMessage(userId, message, sender, options = {}) {
             metadata: {
               sender: sender,
               originalType: messageActualType,
+              sessionId: messageRecord.sessionId, // ✅ ADDED: save device id to DB
               // Flatten the Baileys message object (class instance) to a plain object
               // so that DynamoDB can marshall it. Truncate to 50KB to stay within limits.
               whatsappMessage: (() => {
@@ -1943,6 +1974,8 @@ Tu ÚNICA tarea es clasificar el mensaje del usuario en UNA de estas categorías
 - view   → el usuario quiere CONSULTAR, ver, saber o revisar sus citas o reuniones existentes
 - cancel → el usuario quiere CANCELAR, eliminar, quitar o anular una cita o reunión existente
 - other  → cualquier otro tema (preguntas, saludos, quejas, información, etc.)
+
+REGLA CRÍTICA: Si el mensaje del usuario es una respuesta corta afirmativa (como "sí", "claro", "ok") y el asistente en el mensaje anterior le dio a elegir entre MÚLTIPLES opciones (ejemplo: "precios o agendar visita"), DEBES clasificarlo como "other". Esto permite que el chat principal responda ambas cosas. Solo clasifícalo como "book" si el usuario lo pide explícitamente ("quiero agendar", "sí, quiero ir a ver") o si la pregunta anterior era ÚNICAMENTE sobre agendar.
 
 Responde ÚNICAMENTE con una de las 4 palabras: book, view, cancel, other
 No expliques. No uses puntos. Solo la palabra.`;

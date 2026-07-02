@@ -182,7 +182,7 @@ class NorboyMenuFlow extends BaseFlow {
 
 📄 Consulte nuestras políticas de manejo de datos:
 🔒 Política de Protección de Datos Personales:
-https://norboy.coop/proteccion-de-datos-personales/
+https://www.whatsapp.com/legal
 
 💬 Uso de WhatsApp:
 https://www.whatsapp.com/legal
@@ -222,7 +222,7 @@ Gracias por contactarnos.`;
       logger.info(`⏳ Procesando consulta para ${this.context.userId}, opción ${this.data.selectedOption}`);
 
       // Message 1: Data policy (informational)
-      const dataPolicyMessage = `👋 ¡Gracias por escribirnos!\n\n📄 Consulte nuestras políticas de manejo de datos:\n🔒 Política de Protección de Datos Personales:\nhttps://norboy.coop/proteccion-de-datos-personales/\n\n💬 Uso de WhatsApp:\nhttps://www.whatsapp.com/legal\nGracias por contactarnos.`;
+      const dataPolicyMessage = `👋 ¡Gracias por escribirnos!\n\n📄 Consulte nuestras políticas de manejo de datos:\n🔒 Política de Protección de Datos Personales:\nhttps://www.whatsapp.com/legal\n\n💬 Uso de WhatsApp:\nhttps://www.whatsapp.com/legal\nGracias por contactarnos.`;
 
       // Message 2: Ask what they need help with
       const followUpMessage = `¿Qué duda tiene sumercé?`;

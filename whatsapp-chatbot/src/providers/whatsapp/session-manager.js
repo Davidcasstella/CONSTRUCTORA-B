@@ -158,6 +158,18 @@ class SessionManager extends EventEmitter {
       this.emit('session:outgoing', { sessionId, ...outgoing });
     });
 
+    // ✅ FIX: Forward message delivery failure events
+    provider.on('message-failed', (data) => {
+      logger.error(`[SessionManager] ${sessionId} message failed: to=${data.to}, retries=${data.retries}`);
+      this.emit('session:message-failed', { sessionId, ...data });
+    });
+
+    // ✅ FIX: Forward session health issue events
+    provider.on('session-issue', (data) => {
+      logger.error(`[SessionManager] ${sessionId} session issue: ${data.message}`);
+      this.emit('session:issue', { sessionId, ...data });
+    });
+
     this.sessions.set(sessionId, provider);
   }
 

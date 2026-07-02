@@ -135,7 +135,7 @@ router.get('/monthly-report', requireAuth, async (req, res) => {
     const pdfBuffer = await statisticsService.generateMonthlyPDF(month, year, period);
 
     const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const filename = `NORBOY_Reporte_${monthNames[month - 1]}_${year}.pdf`;
+    const filename = `ConstructoraGA_Reporte_${monthNames[month - 1]}_${year}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

@@ -58,14 +58,14 @@ class BaseFlow {
    * Inicia el flujo
    * @returns {Promise<Object>} Mensaje inicial
    */
-  async start() {
+  async start(initialInput = null) {
     this.status = 'active';
     this.startedAt = new Date();
 
     logger.debug(`Flujo iniciado: ${this.constructor.name}`);
 
     // Llamar al método del primer paso
-    return await this.executeCurrentStep(null, true);
+    return await this.executeCurrentStep(initialInput, true);
   }
 
   /**

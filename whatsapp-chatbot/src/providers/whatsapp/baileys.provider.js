@@ -53,6 +53,12 @@ class BaileysProvider extends EventEmitter {
     // Counter to prevent infinite auth failure loops
     this.authFailureCount = 0;
     this.MAX_AUTH_RETRIES = 1; // Only retry once after auth failure, then wait for manual QR
+    // ✅ FIX: Track pending outgoing messages for retry on status=0 (ERROR)
+    // Map<msgId, { chatId, content, sendOptions, retries, timestamp }>
+    this.pendingSends = new Map();
+    this.MAX_SEND_RETRIES = 2;
+    this.consecutiveFailures = 0; // Track consecutive failures to detect session issues
+    this.MAX_CONSECUTIVE_FAILURES = 5; // Threshold to warn about session problems
   }
 
   /**
@@ -218,32 +224,86 @@ class BaileysProvider extends EventEmitter {
         await this._handleMessages(m);
       });
 
-      // ✅ NUEVO: Detectar fallos silenciosos en envío de media
-      // ✅ FIX: Enhanced monitoring for status@broadcast ACKs
+      // ✅ FIX: Enhanced monitoring for message delivery with automatic retry
       this.sock.ev.on('messages.update', (updates) => {
         for (const update of updates) {
           const status = update.update?.status;
           const msgId = update.key?.id;
           const remoteJid = update.key?.remoteJid;
           const isStatusMsg = remoteJid === 'status@broadcast';
+          const statusNames = { 0: 'ERROR', 1: 'PENDING', 2: 'SERVER_ACK', 3: 'DELIVERY_ACK', 4: 'READ', 5: 'PLAYED' };
 
           if (status !== undefined) {
-            // status: 0=ERROR, 1=PENDING, 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ, 5=PLAYED
             if (isStatusMsg) {
-              // Always log status@broadcast ACKs at info level for debugging
-              const statusNames = { 0: 'ERROR', 1: 'PENDING', 2: 'SERVER_ACK', 3: 'DELIVERY_ACK', 4: 'READ', 5: 'PLAYED' };
               const statusName = statusNames[status] || `UNKNOWN(${status})`;
               if (status === 0) {
                 logger.error(`❌ [WA-STATUS ACK] Estado FALLIDO id=${msgId}, status=${statusName} — WhatsApp rechazó el estado`);
               } else {
                 logger.info(`📡 [WA-STATUS ACK] id=${msgId}, status=${statusName}`);
               }
-            } else {
-              if (status === 0) {
-                logger.error(`❌ [MSG-UPDATE] MENSAJE FALLIDO id=${msgId}, status=ERROR(0)`);
-              } else if (status >= 2) {
-                logger.debug(`✅ [MSG-UPDATE] id=${msgId}, status=${status}`);
+            } else if (status === 0) {
+              // ✅ FIX: Message REJECTED by WhatsApp — attempt retry
+              const pending = this.pendingSends.get(msgId);
+              const targetJid = remoteJid || (pending ? pending.chatId : 'unknown');
+              logger.error(`❌ [MSG-UPDATE] MENSAJE FALLIDO id=${msgId}, to=${targetJid}, status=ERROR(0)`);
+
+              this.consecutiveFailures++;
+
+              // Attempt retry if we have the original message data
+              if (pending && pending.retries < this.MAX_SEND_RETRIES) {
+                pending.retries++;
+                logger.warn(`🔄 [MSG-RETRY] Reintentando envío (${pending.retries}/${this.MAX_SEND_RETRIES}) id=${msgId}, to=${pending.chatId}`);
+                // Retry after a short delay
+                setTimeout(async () => {
+                  try {
+                    const retryResult = await this.sock.sendMessage(pending.chatId, pending.content, pending.sendOptions || {});
+                    const newId = retryResult?.key?.id;
+                    logger.info(`✅ [MSG-RETRY] Reenvío exitoso id=${newId}, to=${pending.chatId} (intento ${pending.retries})`);
+                    // Track the new message ID
+                    if (newId) {
+                      this.pendingSends.set(newId, { ...pending, retries: pending.retries });
+                    }
+                    this.pendingSends.delete(msgId);
+                    this.consecutiveFailures = 0; // Reset on success
+                  } catch (retryErr) {
+                    logger.error(`❌ [MSG-RETRY] Reintento fallido id=${msgId}: ${retryErr.message}`);
+                    this.pendingSends.delete(msgId);
+                    // Emit failure event for dashboard notification
+                    this.emit('message-failed', {
+                      msgId,
+                      to: pending.chatId,
+                      error: retryErr.message,
+                      retries: pending.retries
+                    });
+                  }
+                }, 2000 * pending.retries); // Exponential backoff: 2s, 4s
+              } else {
+                // Max retries exhausted or no pending data
+                if (pending) {
+                  this.pendingSends.delete(msgId);
+                  this.emit('message-failed', {
+                    msgId,
+                    to: pending.chatId,
+                    error: 'WhatsApp rejected message after max retries',
+                    retries: pending.retries
+                  });
+                }
+
+                // ✅ Warn about potential session issue if too many consecutive failures
+                if (this.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
+                  logger.error(`🚨 [SESSION-ISSUE] ${this.consecutiveFailures} mensajes consecutivos fallidos — posible problema de sesión. Considerar limpiar sesión y re-escanear QR.`);
+                  this.emit('session-issue', {
+                    sessionId: this.sessionId,
+                    consecutiveFailures: this.consecutiveFailures,
+                    message: `${this.consecutiveFailures} mensajes consecutivos rechazados por WhatsApp. La sesión puede estar corrupta.`
+                  });
+                }
               }
+            } else if (status >= 2) {
+              // Message delivered successfully — clear from pending and reset failure counter
+              this.pendingSends.delete(msgId);
+              this.consecutiveFailures = 0;
+              logger.debug(`✅ [MSG-UPDATE] id=${msgId}, status=${statusNames[status] || status}`);
             }
           }
         }
@@ -1033,8 +1093,15 @@ class BaileysProvider extends EventEmitter {
 
       // Si content es un string, enviar como texto simple
       if (typeof content === 'string') {
-        const result = await this.sock.sendMessage(chatId, { text: content }, sendOptions);
-        logger.debug(`Mensaje enviado a ${to}`);
+        const msgContent = { text: content };
+        const result = await this.sock.sendMessage(chatId, msgContent, sendOptions);
+        // ✅ FIX: Track sent message for retry on delivery failure
+        if (result?.key?.id) {
+          this.pendingSends.set(result.key.id, {
+            chatId, content: msgContent, sendOptions, retries: 0, timestamp: Date.now()
+          });
+        }
+        logger.debug(`Mensaje enviado a ${to} (id=${result?.key?.id})`);
         return result;
       }
 
@@ -1058,14 +1125,25 @@ class BaileysProvider extends EventEmitter {
 
       // Si es un objeto con text, enviar como texto
       if (content.text) {
-        const result = await this.sock.sendMessage(chatId, { text: content.text }, sendOptions);
-        logger.debug(`Mensaje enviado a ${to}`);
+        const msgContent = { text: content.text };
+        const result = await this.sock.sendMessage(chatId, msgContent, sendOptions);
+        if (result?.key?.id) {
+          this.pendingSends.set(result.key.id, {
+            chatId, content: msgContent, sendOptions, retries: 0, timestamp: Date.now()
+          });
+        }
+        logger.debug(`Mensaje enviado a ${to} (id=${result?.key?.id})`);
         return result;
       }
 
       // Fallback: intentar enviar directamente
       const result = await this.sock.sendMessage(chatId, content, sendOptions);
-      logger.debug(`Mensaje enviado a ${to}`);
+      if (result?.key?.id) {
+        this.pendingSends.set(result.key.id, {
+          chatId, content, sendOptions, retries: 0, timestamp: Date.now()
+        });
+      }
+      logger.debug(`Mensaje enviado a ${to} (id=${result?.key?.id})`);
       return result;
 
     } catch (error) {
