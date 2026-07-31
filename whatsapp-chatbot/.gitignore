@@ -1,11 +1,14 @@
 # Dependencias
 node_modules/
 
-# Variables de entorno (CONTIENE SECRETS - NUNCA SUBIR)
+# Variables de entorno y credenciales (NUNCA SUBIR)
 .env
 .env.local
 .env.*.local
 settings.json
+google-service-account.json
+client_secret_*.json
+grand-sphere-*.json
 
 # Llaves SSH (NUNCA SUBIR)
 *.pem
