@@ -62,9 +62,9 @@ const createRateLimiter = (options = {}) => {
         // Obtener identificador del cliente
         const clientId = req.ip || req.connection.remoteAddress || 'unknown';
 
-        // ✅ SKIP: No aplicar rate limit a llamadas internas (localhost/dashboard)
+        // ✅ SKIP: No aplicar rate limit a peticiones autenticadas del Dashboard o localhost
         const localhostIPs = ['::1', '127.0.0.1', '::ffff:127.0.0.1'];
-        if (localhostIPs.includes(clientId)) {
+        if (req.headers.authorization || localhostIPs.includes(clientId)) {
             return next();
         }
         const now = Date.now();
