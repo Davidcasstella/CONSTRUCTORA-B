@@ -146,6 +146,7 @@ class ConversationRepository {
         context: data.context || { systemPrompt: null, variables: {} },
         metadata: data.metadata || {},
         tags: data.tags || [],
+        labels: Array.isArray(data.labels) ? data.labels : (Array.isArray(data.tags) ? data.tags : []),
 
         // Timestamps
         createdAt: data.createdAt ? (data.createdAt instanceof Date ? data.createdAt.toISOString() : data.createdAt) : new Date().toISOString(),

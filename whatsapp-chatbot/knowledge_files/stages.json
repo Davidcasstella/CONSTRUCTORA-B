@@ -1,10 +1,26 @@
 [
   {
     "id": "stage_1781833765567",
-    "name": "ETAPA1",
+    "name": "TUNJA",
     "order": 1,
     "is_active": true,
     "createdAt": 1781833765567,
-    "updatedAt": 1782886780221
+    "updatedAt": 1785476174198
+  },
+  {
+    "id": "stage_1785476255139",
+    "name": "COMERCIAL",
+    "order": 2,
+    "is_active": false,
+    "createdAt": 1785476255139,
+    "updatedAt": 1785476256183
+  },
+  {
+    "id": "stage_1785476262370",
+    "name": "DUITAMA",
+    "order": 3,
+    "is_active": true,
+    "createdAt": 1785476262370,
+    "updatedAt": 1785476262370
   }
 ]

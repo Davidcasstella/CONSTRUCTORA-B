@@ -1,7 +1,8 @@
 // Conversation service — Full API for WhatsApp Chat view
 // Merges Baileys + Memory + DynamoDB data
 
-import { apiGet, apiPost, apiPostForm, apiDelete } from './api';
+import { apiGet, apiPost, apiPostForm, apiDelete, apiPut } from './api';
+
 import { apiFetch } from './api';
 
 // Main conversations list: uses /api/conversations/whatsapp-chats
@@ -78,6 +79,11 @@ export async function editCustomName(userId, name) {
 // Delete conversation
 export async function deleteConversation(userId) {
   return apiDelete(`/api/conversations/${encodeURIComponent(userId)}`);
+}
+
+// Assign labels to a conversation (replaces the full set). labelIds: string[]
+export async function setConversationLabels(userId, labelIds) {
+  return apiPut(`/api/conversations/${encodeURIComponent(userId)}/labels`, { labels: labelIds });
 }
 
 // Create new chat

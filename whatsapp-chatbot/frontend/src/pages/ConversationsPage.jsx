@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import * as convService from '../services/conversationService';
+import * as labelService from '../services/labelService';
 import { getActiveQuickReplies } from '../services/quickReplyService';
 import { getAllConfigs as getAllAgentConfigs } from '../services/agentConfigService';
 import QuickReplyDropdown from '../components/chat/QuickReplyDropdown';
@@ -228,7 +229,7 @@ function _invalidateMsgsCache(userId) {
 // ===========================
 export default function ConversationsPage() {
   const { user } = useAuth();
-  const { socket } = useSocket();
+  const { socket, soundMuted, toggleSoundMute } = useSocket();
 
   // Stats — restore from cache if available
   const [stats, setStats] = useState(_convsCache.stats || { total: 0, active: 0, expired: 0, consent: 0, pending: 0, advisor: 0 });
@@ -285,6 +286,10 @@ export default function ConversationsPage() {
   // Modals
   const [modal, setModal] = useState(null);
   const [modalData, setModalData] = useState({});
+
+  // Labels
+  const [labels, setLabels] = useState([]);
+  const [labelFilter, setLabelFilter] = useState(null); // null = no filter, labelId string = filter by label
 
   // Refs
   const messagesEndRef = useRef(null);
@@ -417,6 +422,16 @@ export default function ConversationsPage() {
     }
     loadQR();
   }, []);
+
+  // Load labels catalog
+  const loadLabels = useCallback(async () => {
+    try {
+      const data = await labelService.getLabels();
+      if (data?.success) setLabels(data.labels || []);
+    } catch (e) { console.error('Error loading labels:', e); }
+  }, []);
+
+  useEffect(() => { loadLabels(); }, [loadLabels]);
 
   // Load all agent configs (for display names and colors in messages)
   useEffect(() => {
@@ -945,6 +960,72 @@ export default function ConversationsPage() {
   };
 
   // ===========================
+  // LABEL HANDLERS
+  // ===========================
+  const openAssignLabels = (e, conv) => {
+    e.stopPropagation();
+    setModal('assign-labels');
+    setModalData({ userId: conv.userId, name: convName(conv), selected: conv.labels || [] });
+  };
+
+  const toggleLabelInModal = (labelId) => {
+    setModalData(prev => {
+      const sel = prev.selected || [];
+      return {
+        ...prev,
+        selected: sel.includes(labelId) ? sel.filter(id => id !== labelId) : [...sel, labelId]
+      };
+    });
+  };
+
+  const handleSaveLabels = async () => {
+    const { userId, selected } = modalData;
+    if (!userId) return;
+    try {
+      const data = await convService.setConversationLabels(userId, selected || []);
+      if (data?.success) {
+        setModal(null);
+        showToast('✅ Etiquetas guardadas');
+        setConversations(prev => prev.map(c =>
+          c.userId === userId ? { ...c, labels: selected || [] } : c
+        ));
+        if (selectedUserId === userId) {
+          setSelectedConv(prev => prev ? { ...prev, labels: selected || [] } : prev);
+        }
+      }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  const handleCreateLabel = async () => {
+    const name = modalData.newName?.trim();
+    if (!name) return;
+    try {
+      const data = await labelService.createLabel(name, modalData.newColor || '#3b82f6');
+      if (data?.success) {
+        setLabels(prev => [...prev, data.label]);
+        setModalData(prev => ({ ...prev, newName: '', newColor: '#3b82f6' }));
+        showToast('✅ Etiqueta creada');
+      }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  const handleDeleteLabel = async (labelId) => {
+    try {
+      const data = await labelService.deleteLabel(labelId);
+      if (data?.success) {
+        setLabels(prev => prev.filter(l => l.id !== labelId));
+        // Remove deleted label from all conversations in UI
+        setConversations(prev => prev.map(c => ({
+          ...c,
+          labels: (c.labels || []).filter(id => id !== labelId)
+        })));
+        if (labelFilter === labelId) setLabelFilter(null);
+        showToast('🗑️ Etiqueta eliminada');
+      }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  // ===========================
   // SOCKET.IO EVENTS
   // ===========================
   useEffect(() => {
@@ -1224,16 +1305,22 @@ export default function ConversationsPage() {
   // ===========================
   // FILTER & SEARCH
   // ===========================
-  // Search is now server-side; only apply status filter client-side
+  // Search is now server-side; only apply status + label filter client-side
   const filteredConvs = conversations
     .filter(c => {
       const isGroup = c.isGroup || (c.userId && c.userId.endsWith('@g.us'));
-      // ✅ Groups filter: show only group chats (@g.us)
+      // Groups filter: show only group chats (@g.us)
       if (filter === 'groups') return isGroup;
-      // ✅ All other filters exclude groups by default
+      // All other filters exclude groups by default
       if (isGroup) return false;
 
-      // ✅ Device filters: show only conversations from that session
+      // Label filter
+      if (labelFilter) {
+        const convLabels = c.labels || [];
+        if (!convLabels.includes(labelFilter)) return false;
+      }
+
+      // Device filters: show only conversations from that session
       if (filter === 'device1') return c.sessionIds?.includes('session1') || c.sessionId === 'session1';
       if (filter === 'device2') return c.sessionIds?.includes('session2') || c.sessionId === 'session2';
       
@@ -1470,6 +1557,13 @@ export default function ConversationsPage() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
+              <button
+                className={`sound-toggle-btn ${soundMuted ? 'muted' : ''}`}
+                title={soundMuted ? 'Notificaciones en silencio (clic para activar sonido)' : 'Sonido activado (clic para silenciar)'}
+                onClick={toggleSoundMute}
+              >
+                {soundMuted ? '🔕' : '🔔'}
+              </button>
             </div>
             <div className="conv-filter-row">
               {[
@@ -1488,6 +1582,35 @@ export default function ConversationsPage() {
                 >{f.label}</button>
               ))}
             </div>
+            {/* Label filter row */}
+            {labels.length > 0 && (
+              <div className="conv-label-filter-row">
+                {labels.map(l => (
+                  <button
+                    key={l.id}
+                    className={`conv-label-chip ${labelFilter === l.id ? 'active' : ''}`}
+                    style={labelFilter === l.id ? {} : { borderColor: l.color, color: l.color }}
+                    onClick={() => setLabelFilter(prev => prev === l.id ? null : l.id)}
+                  >
+                    🏷️ {l.name}
+                  </button>
+                ))}
+                <button
+                  className="conv-label-chip manage"
+                  title="Gestionar etiquetas"
+                  onClick={() => { setModal('manage-labels'); setModalData({ newColor: '#3b82f6' }); }}
+                >⚙️</button>
+              </div>
+            )}
+            {labels.length === 0 && (
+              <div className="conv-label-filter-row">
+                <button
+                  className="conv-label-chip manage"
+                  title="Crear etiquetas"
+                  onClick={() => { setModal('manage-labels'); setModalData({ newColor: '#3b82f6' }); }}
+                >⚙️ Etiquetas</button>
+              </div>
+            )}
           </div>
 
           <div className="conv-list-scroll">
@@ -1533,7 +1656,7 @@ export default function ConversationsPage() {
                       <div className="conv-info-bottom">
                         <span className="conv-last-msg">{lastMsg}</span>
                         {cStatus && <span className={`conv-status-badge ${cStatus.cls}`}>{cStatus.text}</span>}
-                        {/* ✅ DEVICE badge */}
+                        {/* Device badge */}
                         {c.sessionId && DEVICE_CONFIG[c.sessionId] && (
                           <span
                             className="conv-device-badge"
@@ -1545,7 +1668,19 @@ export default function ConversationsPage() {
                             {DEVICE_CONFIG[c.sessionId].emoji} {DEVICE_CONFIG[c.sessionId].label}
                           </span>
                         )}
+                        {/* Label badges */}
+                        {(c.labels || []).length > 0 && (
+                          <div className="conv-label-badges">
+                            {(c.labels || []).map(lid => {
+                              const lbl = labels.find(l => l.id === lid);
+                              return lbl ? (
+                                <span key={lid} className="conv-label-badge" style={{ background: lbl.color }}>{lbl.name}</span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
                         <div className="conv-actions">
+                          <button className="conv-action-btn" title="Etiquetas" onClick={e => openAssignLabels(e, c)}>🏷️</button>
                           <button className="conv-action-btn edit" title="Editar" onClick={e => {
                             e.stopPropagation();
                             setModal('edit-name');
@@ -2029,7 +2164,72 @@ export default function ConversationsPage() {
         </div>
       )}
 
-      {/* ===== Profile Picture Lightbox ===== */}
+      {/* Assign Labels to conversation */}
+      {modal === 'assign-labels' && (
+        <div className="modal-overlay active">
+          <div className="modal-content">
+            <div className="modal-header"><div className="modal-title">Etiquetas de {modalData.name}</div></div>
+            <div className="modal-body">
+              {labels.length === 0 ? (
+                <p style={{ color: '#667781' }}>No hay etiquetas creadas. Usa el botón ⚙️ para crear una.</p>
+              ) : (
+                <div className="label-picker-list">
+                  {labels.map(l => {
+                    const checked = (modalData.selected || []).includes(l.id);
+                    return (
+                      <label key={l.id} className={`label-picker-item ${checked ? 'checked' : ''}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleLabelInModal(l.id)} />
+                        <span className="label-swatch" style={{ background: l.color }} />
+                        <span className="label-picker-name">{l.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="modal-btn secondary" onClick={() => setModal(null)}>Cancelar</button>
+              <button className="modal-btn primary" onClick={handleSaveLabels}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Labels catalog */}
+      {modal === 'manage-labels' && (
+        <div className="modal-overlay active">
+          <div className="modal-content">
+            <div className="modal-header"><div className="modal-title">Gestionar Etiquetas</div></div>
+            <div className="modal-body">
+              <div className="label-create-row">
+                <input className="modal-input" type="text" placeholder="Nueva etiqueta" value={modalData.newName || ''}
+                  style={{ margin: 0, flex: 1 }}
+                  onChange={e => setModalData(p => ({ ...p, newName: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') handleCreateLabel(); }} />
+                <input type="color" className="label-color-input" value={modalData.newColor || '#3b82f6'}
+                  onChange={e => setModalData(p => ({ ...p, newColor: e.target.value }))} />
+                <button className="modal-btn primary" style={{ margin: 0 }} onClick={handleCreateLabel}>Crear</button>
+              </div>
+              <div className="label-manage-list">
+                {labels.length === 0 ? (
+                  <p style={{ color: '#667781', marginTop: 12 }}>Aún no hay etiquetas.</p>
+                ) : labels.map(l => (
+                  <div key={l.id} className="label-manage-item">
+                    <span className="label-swatch" style={{ background: l.color }} />
+                    <span className="label-picker-name">{l.name}</span>
+                    <button className="label-delete-btn" title="Eliminar etiqueta" onClick={() => handleDeleteLabel(l.id)}>🗑️</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="modal-btn secondary" onClick={() => setModal(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Picture Lightbox */}
       {lightboxImage && (
         <div className="profile-lightbox-overlay" onClick={() => setLightboxImage(null)}>
           <div className="profile-lightbox-container" onClick={(e) => e.stopPropagation()}>

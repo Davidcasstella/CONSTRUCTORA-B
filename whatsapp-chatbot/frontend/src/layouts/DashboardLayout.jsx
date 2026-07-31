@@ -4,24 +4,26 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import * as agentConfigService from '../services/agentConfigService';
+import NotificationBanner from '../components/common/NotificationBanner';
 import '../styles/dashboard.css';
+import '../styles/notifications.css';
 
 const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Inicio' },
   { to: '/conversations', icon: '💬', label: 'Conversaciones', hasBadge: true },
   { section: 'Herramientas' },
-  { to: '/welcome', icon: '👋', label: 'Bienvenida', badge: 'Nuevo' },
+  { to: '/welcome', icon: '👋', label: 'Bienvenida' },
   { to: '/quick-replies', icon: '⚡', label: 'Respuestas Rápidas' },
   { to: '/documents', icon: '📁', label: 'Documentos' },
   { to: '/number-control', icon: '🔢', label: 'Control de Números' },
   // { to: '/holidays', icon: '📅', label: 'Días Festivos' }, // Oculto temporalmente
   // { to: '/statistics', icon: '📊', label: 'Estadísticas' }, // Oculto temporalmente
   { to: '/settings', icon: '⚙️', label: 'Configuración' },
-  // { to: '/statuses', icon: '🔵', label: 'Estados', badge: 'Nuevo' }, // Oculto temporalmente
-  { to: '/ai-rules', icon: '🤖', label: 'Reglas IA', badge: 'Nuevo' },
-  { to: '/calendar', icon: '📅', label: 'Calendario', badge: 'Nuevo' },
+  // { to: '/statuses', icon: '🔵', label: 'Estados' }, // Oculto temporalmente
+  { to: '/ai-rules', icon: '🤖', label: 'Reglas IA' },
+  { to: '/calendar', icon: '📅', label: 'Calendario' },
   { section: 'Marketing' },
-  { to: '/bulk-messages', icon: '📢', label: 'Mensajes Masivos', badge: 'Nuevo' },
+  { to: '/bulk-messages', icon: '📢', label: 'Mensajes Masivos' },
 ];
 
 const VIEW_NAMES = {
@@ -48,12 +50,16 @@ const PRESET_COLORS = [
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
-  const { whatsappStatus } = useSocket();
+  const { whatsappStatus, pendingCount, notifications, dismissNotification } = useSocket();
   const { darkMode, toggleTheme } = useTheme();
   const location = useLocation();
   const [clockTime, setClockTime] = useState('');
   const [clockSeconds, setClockSeconds] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Notification bell state
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef(null);
 
   // Agent profile state
   const [profileOpen, setProfileOpen] = useState(false);
@@ -80,12 +86,15 @@ export default function DashboardLayout() {
     loadConfig();
   }, []);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
         setEditMode(null);
+      }
+      if (bellRef.current && !bellRef.current.contains(e.target)) {
+        setBellOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -155,6 +164,9 @@ export default function DashboardLayout() {
 
   return (
     <div className="dashboard-wrapper">
+      {/* ✅ NUEVO: Sistema de notificaciones globales (escalación + toasts) */}
+      <NotificationBanner />
+
       {/* Mobile overlay */}
       {sidebarOpen && <div className="sidebar-overlay active" onClick={() => setSidebarOpen(false)} />}
 
@@ -180,7 +192,10 @@ export default function DashboardLayout() {
               >
                 <span className="nav-item-icon">{item.icon}</span>
                 <span className="nav-item-text">{item.label}</span>
-                {item.badge && (
+                {/* ✅ NUEVO: Badge real de conversaciones pendientes */}
+                {item.hasBadge && pendingCount > 0 ? (
+                  <span className="pending-badge">{pendingCount > 99 ? '99+' : pendingCount}</span>
+                ) : item.badge ? (
                   <span style={{
                     marginLeft: 'auto',
                     fontSize: '9px',
@@ -194,7 +209,7 @@ export default function DashboardLayout() {
                     lineHeight: 1.4,
                     flexShrink: 0,
                   }}>{item.badge}</span>
-                )}
+                ) : null}
               </NavLink>
             )
           )}
@@ -228,6 +243,65 @@ export default function DashboardLayout() {
             <button className="theme-toggle-btn" onClick={toggleTheme} title="Cambiar tema">
               {darkMode ? '☀️' : '🌙'}
             </button>
+
+            {/* ✅ NUEVO: Campana de notificaciones */}
+            <div className="notif-bell-wrapper" ref={bellRef}>
+              <button
+                className={`notif-bell-btn${notifications.length > 0 ? ' notif-bell-active' : ''}`}
+                onClick={() => { setBellOpen(v => !v); setProfileOpen(false); }}
+                title="Notificaciones"
+              >
+                🔔
+                {(notifications.length > 0 || pendingCount > 0) && (
+                  <span className="notif-bell-badge">
+                    {notifications.length > 0 ? notifications.length : pendingCount > 99 ? '99+' : pendingCount}
+                  </span>
+                )}
+              </button>
+
+              {bellOpen && (
+                <div className="notif-bell-dropdown">
+                  <div className="notif-bell-header">
+                    <span>🔔 Notificaciones</span>
+                    {notifications.length > 0 && (
+                      <button className="notif-bell-clear" onClick={() => dismissNotification(null)}>Limpiar todo</button>
+                    )}
+                  </div>
+
+                  {notifications.length === 0 && pendingCount === 0 && (
+                    <div className="notif-bell-empty">
+                      <span>✅</span>
+                      <span>Sin alertas pendientes</span>
+                    </div>
+                  )}
+
+                  {notifications.length === 0 && pendingCount > 0 && (
+                    <div className="notif-bell-item notif-bell-item-pending">
+                      <span className="notif-bell-item-icon">💬</span>
+                      <div className="notif-bell-item-text">
+                        <div className="notif-bell-item-title">{pendingCount} conversación{pendingCount !== 1 ? 'es' : ''} pendiente{pendingCount !== 1 ? 's' : ''}</div>
+                        <div className="notif-bell-item-detail">Requieren atención de asesor</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {notifications.map(notif => (
+                    <div key={notif.id} className="notif-bell-item notif-bell-item-escalation">
+                      <span className="notif-bell-item-icon">🚨</span>
+                      <div className="notif-bell-item-text">
+                        <div className="notif-bell-item-title">¡Atención requerida!</div>
+                        <div className="notif-bell-item-detail">
+                          {notif.phoneNumber && <span>{notif.phoneNumber.replace(/\D/g,'').slice(-10)}</span>}
+                          {notif.reason && <span> · {notif.reason === 'out_of_hours' ? 'Fuera de horario' : notif.reason === 'escalation' ? 'Escalación' : notif.reason}</span>}
+                        </div>
+                      </div>
+                      <button className="notif-bell-item-close" onClick={() => dismissNotification(notif.id)}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className={`header-status-badge ${statusClass}`}>
               <span className="status-dot"></span>
               <span>{statusText}</span>

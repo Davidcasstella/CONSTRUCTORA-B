@@ -47,6 +47,7 @@ class Conversation {
     // Metadatos
     this.metadata = data.metadata || {};
     this.tags = data.tags || [];
+    this.labels = Array.isArray(data.labels) ? data.labels : (Array.isArray(data.tags) ? data.tags : []);
 
     // Timestamps
     this.createdAt = data.createdAt || new Date();
@@ -153,6 +154,7 @@ class Conversation {
       context: this.context,
       metadata: this.metadata,
       tags: this.tags,
+      labels: this.labels,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       lastMessageAt: this.lastMessageAt,

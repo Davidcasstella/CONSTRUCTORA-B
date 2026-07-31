@@ -1,0 +1,91 @@
+{
+  "type": "txt",
+  "name": "AGENDAR VISITA AL PROYECTO.txt",
+  "chunks": [
+    {
+      "text": "¿Quieres conocer los avances de tu próximo hogar? Contamos el acompañamiento de la Ingeniera Jimena:",
+      "keywords": [
+        "quieres",
+        "conocer",
+        "avances",
+        "próximo",
+        "hogar",
+        "contamos",
+        "acompañamiento",
+        "ingeniera",
+        "jimena"
+      ]
+    },
+    {
+      "text": "📅 Día y Horario Disponible: • Viernes: 10:00 a.m. a 2:00 p.m.",
+      "keywords": [
+        "horario",
+        "disponible",
+        "viernes",
+        "1000"
+      ]
+    },
+    {
+      "text": "💡 Nota: Te recomendamos programar o confirmar tu asistencia con anticipación dentro de esta jornada.",
+      "keywords": [
+        "nota",
+        "recomendamos",
+        "programar",
+        "confirmar",
+        "asistencia",
+        "anticipación",
+        "dentro",
+        "jornada"
+      ]
+    },
+    {
+      "text": "¿Te gustaría agendar una cita de atención o resolver dudas con un asesor?",
+      "keywords": [
+        "gustaría",
+        "agendar",
+        "cita",
+        "atención",
+        "resolver",
+        "dudas",
+        "asesor"
+      ]
+    },
+    {
+      "text": "Pregunta: A\nRespuesta: A VER LOS APTOS - BELLAVISTA II\n\n¿Quieres conocer los avances de tu próximo hogar? Contamos el acompañamiento de la Ingeniera Jimena:\n\n📅 Día y Horario Disponible:\n• Viernes: 10:00 a.m. a 2:00 p.m.\n\n💡 Nota: Te recomendamos programar o confirmar tu asistencia con anticipación dentro de esta jornada.\n\n¿Te gustaría agendar una cita de atención o resolver dudas con un asesor?",
+      "keywords": [
+        "aptos",
+        "bellavista",
+        "quieres",
+        "conocer",
+        "avances",
+        "próximo",
+        "hogar",
+        "contamos",
+        "acompañamiento",
+        "ingeniera",
+        "jimena",
+        "horario",
+        "disponible",
+        "viernes",
+        "1000",
+        "nota",
+        "recomendamos",
+        "programar",
+        "confirmar",
+        "asistencia",
+        "anticipación",
+        "dentro",
+        "jornada",
+        "gustaría",
+        "agendar",
+        "cita",
+        "atención",
+        "resolver",
+        "dudas",
+        "asesor"
+      ],
+      "isQA": true
+    }
+  ],
+  "uploadDate": "2026-07-31T05:33:11.270Z"
+}

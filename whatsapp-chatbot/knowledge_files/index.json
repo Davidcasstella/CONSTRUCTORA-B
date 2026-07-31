@@ -1,18 +1,102 @@
 {
   "files": [
     {
-      "id": "1782886801127",
-      "fileName": "1782886801113_Preguntas y respuestas para el flujo de un chatbot de constructora.txt",
-      "originalName": "Preguntas y respuestas para el flujo de un chatbot de constructora.txt",
+      "id": "1785476233809",
+      "fileName": "1785476233735_AGENDAR VISITA AL PROYECTO.txt",
+      "originalName": "AGENDAR VISITA AL PROYECTO.txt",
       "type": "txt",
-      "size": 6848,
-      "chunksCount": 26,
-      "uploadDate": "2026-07-01T06:20:01.127Z",
+      "size": 415,
+      "chunksCount": 5,
+      "uploadDate": "2026-07-31T05:37:13.809Z",
       "stageId": "stage_1781833765567",
-      "relativePath": "etapa1/1782886801113_Preguntas y respuestas para el flujo de un chatbot de constructora.txt",
+      "relativePath": "tunja/1785476233735_AGENDAR VISITA AL PROYECTO.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476235357",
+      "fileName": "1785476235344_ENTIDADES ALIADAStxt.txt",
+      "originalName": "ENTIDADES ALIADAStxt.txt",
+      "type": "txt",
+      "size": 554,
+      "chunksCount": 5,
+      "uploadDate": "2026-07-31T05:37:15.357Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "tunja/1785476235344_ENTIDADES ALIADAStxt.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476236373",
+      "fileName": "1785476236363_SUBSIDIOStxttxt.txt",
+      "originalName": "SUBSIDIOStxttxt.txt",
+      "type": "txt",
+      "size": 696,
+      "chunksCount": 6,
+      "uploadDate": "2026-07-31T05:37:16.373Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "tunja/1785476236363_SUBSIDIOStxttxt.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476237699",
+      "fileName": "1785476237634_BIENVENIDAtxttxttxttxttxttxttxttxt.txt",
+      "originalName": "BIENVENIDAtxttxttxttxttxttxttxttxt.txt",
+      "type": "txt",
+      "size": 434,
+      "chunksCount": 5,
+      "uploadDate": "2026-07-31T05:37:17.699Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "tunja/1785476237634_BIENVENIDAtxttxttxttxttxttxttxttxt.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476238673",
+      "fileName": "1785476238598_REQUISITOS PARA COMPRAR Y APLICAR A SUBSIDIOStxttxttxt.txt",
+      "originalName": "REQUISITOS PARA COMPRAR Y APLICAR A SUBSIDIOStxttxttxt.txt",
+      "type": "txt",
+      "size": 863,
+      "chunksCount": 9,
+      "uploadDate": "2026-07-31T05:37:18.673Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "tunja/1785476238598_REQUISITOS PARA COMPRAR Y APLICAR A SUBSIDIOStxttxttxt.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476240300",
+      "fileName": "1785476240230_PRECIOS Y OPCIONES DEL PROYECTOtxttxttxt.txt",
+      "originalName": "PRECIOS Y OPCIONES DEL PROYECTOtxttxttxt.txt",
+      "type": "txt",
+      "size": 531,
+      "chunksCount": 6,
+      "uploadDate": "2026-07-31T05:37:20.300Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "tunja/1785476240230_PRECIOS Y OPCIONES DEL PROYECTOtxttxttxt.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476240882",
+      "fileName": "1785476240872_CARACTERISTICAS DEL APTOtxttxttxttxt.txt",
+      "originalName": "CARACTERISTICAS DEL APTOtxttxttxttxt.txt",
+      "type": "txt",
+      "size": 597,
+      "chunksCount": 6,
+      "uploadDate": "2026-07-31T05:37:20.882Z",
+      "stageId": "stage_1781833765567",
+      "relativePath": "tunja/1785476240872_CARACTERISTICAS DEL APTOtxttxttxttxt.txt",
+      "is_active": true
+    },
+    {
+      "id": "1785476280831",
+      "fileName": "1785476280812_Abedules.txt",
+      "originalName": "Abedules.txt",
+      "type": "txt",
+      "size": 7383,
+      "chunksCount": 29,
+      "uploadDate": "2026-07-31T05:38:00.831Z",
+      "stageId": "stage_1785476262370",
+      "relativePath": "duitama/1785476280812_Abedules.txt",
       "isManual": true,
       "is_active": true
     }
   ],
-  "lastUpdate": "2026-07-01T06:20:38.474Z"
+  "lastUpdate": "2026-07-31T06:04:32.448Z"
 }

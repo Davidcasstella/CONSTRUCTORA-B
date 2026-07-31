@@ -118,6 +118,7 @@ async function loadConversationsFromDB() {
         context: convData.context || { systemPrompt: null, variables: {} },
         metadata: convData.metadata || {},
         tags: convData.tags || [],
+        labels: Array.isArray(convData.labels) ? convData.labels : (Array.isArray(convData.tags) ? convData.tags : []),
 
         // ✅ DEVICE: Restaurar sesión asignada
         sessionId: convData.sessionId || 'session1',
@@ -263,6 +264,7 @@ function getOrCreateConversation(userId, options = {}) {
       whatsappName: (whatsappName && whatsappName.trim()) ? whatsappName.trim() : null,
       // ✅ NUEVO: Campos de gestión
       customName: null,
+      labels: [],
       isDeleted: false,
       whatsappNameUpdatedAt: whatsappName ? Date.now() : null,
       // ✅ DEVICE: WhatsApp session that manages this conversation (session1 or session2)
@@ -425,6 +427,8 @@ function resetConversation(userId) {
     whatsappName: oldConversation.whatsappName || null,
     // ✅ NUEVO: Preservar nombre personalizado
     customName: oldConversation.customName || null,
+    // ✅ FIX: Preserve labels across cycle resets — they must survive until manually changed
+    labels: Array.isArray(oldConversation.labels) ? oldConversation.labels : [],
     isDeleted: false, // Al reiniciar, 'revivimos' el chat si estaba borrado
     whatsappNameUpdatedAt: oldConversation.whatsappNameUpdatedAt || null,
     // ✅ DEVICE: Preserve which session manages this conversation across cycles
@@ -745,6 +749,47 @@ function updateSessionId(userId, sessionId) {
   }
 }
 
+/**
+ * Actualiza las etiquetas asignadas a una conversación y persiste a DynamoDB
+ * @param {string} userId - ID de la conversación
+ * @param {Array<string>} labels - Arreglo de IDs de etiquetas
+ * @returns {Object|null}
+ */
+function updateLabels(userId, labels) {
+  if (!userId) return null;
+  const conversation = conversationsCache.get(userId);
+  if (!conversation) return null;
+
+  conversation.labels = Array.isArray(labels) ? labels : [];
+  conversation.updatedAt = new Date();
+
+  // Persistir inmediatamente a DynamoDB
+  persistConversation(conversation, true);
+
+  logger.info(`🏷️ [LABELS] Etiquetas actualizadas y persistidas para ${userId}: [${conversation.labels.join(', ')}]`);
+  return conversation;
+}
+
+/**
+ * Removes a label ID from ALL conversations in memory (and persists changes).
+ * Called when a label is deleted from the catalog.
+ * @param {string} labelId - ID of the label to remove
+ * @returns {number} Number of conversations affected
+ */
+function removeLabelFromAll(labelId) {
+  if (!labelId) return 0;
+  let affected = 0;
+  for (const conversation of conversationsCache.values()) {
+    if (Array.isArray(conversation.labels) && conversation.labels.includes(labelId)) {
+      conversation.labels = conversation.labels.filter(id => id !== labelId);
+      conversation.updatedAt = new Date();
+      persistConversation(conversation); // Debounced — no immediate needed
+      affected++;
+    }
+  }
+  return affected;
+}
+
 module.exports = {
   getOrCreateConversation,
   extractPhoneNumber,
@@ -775,6 +820,9 @@ module.exports = {
   // ✅ Exportar para que Baileys y otros módulos puedan recargar
   loadConversationsFromDB,
   updateCustomName,
+  updateLabels,
+  removeLabelFromAll,
+  persistConversation,
   softDeleteConversation,
   getAllConversationsRaw,
   // ✅ DEVICE: Update which session manages a conversation

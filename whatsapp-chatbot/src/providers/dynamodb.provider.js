@@ -20,7 +20,8 @@ const TABLES = {
   CONTACTS: process.env.DYNAMODB_CONTACTS_TABLE || 'chatbot-contacts',
   BULK_CAMPAIGNS: process.env.DYNAMODB_BULK_CAMPAIGNS_TABLE || 'chatbot-bulk-campaigns',
   BULK_MESSAGES: process.env.DYNAMODB_BULK_MESSAGES_TABLE || 'chatbot-bulk-messages',
-  MESSAGE_TEMPLATES: process.env.DYNAMODB_MESSAGE_TEMPLATES_TABLE || 'chatbot-message-templates'
+  MESSAGE_TEMPLATES: process.env.DYNAMODB_MESSAGE_TEMPLATES_TABLE || 'chatbot-message-templates',
+  LABELS: process.env.DYNAMODB_LABELS_TABLE || 'constructora-labels'
 };
 
 let dynamoDBClient = null;

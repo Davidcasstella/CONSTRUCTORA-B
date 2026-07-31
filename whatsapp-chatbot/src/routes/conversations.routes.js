@@ -1721,7 +1721,9 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
           unreadCount: 0,
           status: data.status || 'active',
           bot_active: data.status !== 'advisor_handled',
-          sessionId: data.sessionId || null
+          sessionId: data.sessionId || null,
+          // ✅ FIX: Include labels from DynamoDB so they persist in the chat list
+          labels: Array.isArray(data.labels) ? data.labels : []
         };
         if (data.isDeleted) {
           chatsByUserId.delete(data.participantId);
@@ -1732,6 +1734,10 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
           if (!existing.customName && data.customName) {
             existing.customName = data.customName;
             existing.registeredName = data.customName;
+          }
+          // ✅ FIX: Merge labels from DynamoDB into existing Baileys chat
+          if (Array.isArray(data.labels) && data.labels.length > 0) {
+            existing.labels = data.labels;
           }
         } else {
           chatsByUserId.set(data.participantId, dbChat);
@@ -1761,7 +1767,9 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
             unreadCount: 0,
             status: conv.status || 'active',
             bot_active: conv.bot_active !== undefined ? conv.bot_active : true,
-            sessionId: conv.sessionId || null
+            sessionId: conv.sessionId || null,
+            // ✅ FIX: Include labels from memory so they persist in the chat list
+            labels: Array.isArray(conv.labels) ? conv.labels : []
           };
 
           const existing = chatsByUserId.get(conv.userId);
@@ -1773,7 +1781,11 @@ router.get('/whatsapp-chats', requireAuth, async (req, res) => {
               bot_active: conv.bot_active !== undefined ? conv.bot_active : existing.bot_active,
               customName: conv.customName || existing.customName,
               // ✅ DEVICE: Memory always has the most up-to-date sessionId
-              sessionId: conv.sessionId || existing.sessionId
+              sessionId: conv.sessionId || existing.sessionId,
+              // ✅ FIX: Memory is source of truth for labels (most up-to-date)
+              labels: Array.isArray(conv.labels) && conv.labels.length > 0
+                ? conv.labels
+                : (existing.labels || [])
             });
           } else {
             chatsByUserId.set(conv.userId, memChat);
@@ -2466,6 +2478,34 @@ router.delete('/:userId', requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+/**
+ * PUT /api/conversations/:userId/labels
+ * Assigns labels to a conversation (replaces the full set).
+ * Body: { labels: string[] }   — array of label IDs
+ */
+router.put('/:userId/labels', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { labels } = req.body;
+
+    if (!Array.isArray(labels)) {
+      return res.status(400).json({ success: false, error: 'labels debe ser un arreglo de IDs' });
+    }
+
+    const conv = conversationStateService.updateLabels(userId, labels);
+    if (!conv) {
+      return res.status(404).json({ success: false, error: 'Conversación no encontrada' });
+    }
+
+    logger.info(`[LABELS] Etiquetas asignadas y guardadas a ${userId}: [${labels.join(', ')}]`);
+    res.json({ success: true, labels: conv.labels });
+  } catch (error) {
+    logger.error(`Error asignando etiquetas a ${req.params.userId}:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 module.exports = {
   router,

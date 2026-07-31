@@ -1,0 +1,446 @@
+/* ============================================
+   NOTIFICATIONS CSS — CONSTRUCTORA G&A Chatbot
+   Banner de escalación y notificaciones en tiempo real
+   ============================================ */
+
+/* ============ NOTIFICATION BANNER (Escalación) ============ */
+.notification-banner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+}
+
+.notification-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #D84315, #FF5722);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(216, 67, 21, 0.4);
+  pointer-events: all;
+  animation: bannerSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-bottom: 2px solid rgba(255,255,255,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.notification-banner.banner-leaving {
+  animation: bannerSlideOut 0.3s ease-in both;
+}
+
+@keyframes bannerSlideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes bannerSlideOut {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(-100%); opacity: 0; }
+}
+
+.notification-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-banner-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  animation: bellShake 0.5s ease 0.3s 2;
+}
+
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0deg); }
+  25%       { transform: rotate(-12deg); }
+  75%       { transform: rotate(12deg); }
+}
+
+.notification-banner-text {
+  min-width: 0;
+}
+
+.notification-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.notification-banner-detail {
+  font-size: 12px;
+  opacity: 0.88;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.notification-banner-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+  white-space: nowrap;
+}
+
+.notification-banner-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.notification-banner-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.notification-banner-close:hover {
+  color: #fff;
+  transform: scale(1.2);
+}
+
+/* Progress bar auto-dismiss timer */
+.notification-banner-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.6);
+  animation: progressBar 30s linear both;
+  border-radius: 0 3px 3px 0;
+}
+
+@keyframes progressBar {
+  from { width: 100%; }
+  to   { width: 0%;   }
+}
+
+/* ============ PENDING BADGE (menú sidebar) ============ */
+.pending-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #FF5722;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 9px;
+  margin-left: auto;
+  line-height: 1;
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ============ TOAST NOTIFICATIONS (spam, info) ============ */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  pointer-events: all;
+  min-width: 240px;
+  max-width: 360px;
+  animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast.leaving {
+  animation: toastOut 0.25s ease-in both;
+}
+
+@keyframes toastIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes toastOut {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(120%); opacity: 0; }
+}
+
+.toast-warning { background: linear-gradient(135deg, #E65100, #FF8C00); }
+.toast-error   { background: linear-gradient(135deg, #B71C1C, #F44336); }
+.toast-success { background: linear-gradient(135deg, #1B5E20, #2E7D32); }
+.toast-info    { background: linear-gradient(135deg, #37474F, #546E7A); }
+
+.toast-icon  { font-size: 18px; flex-shrink: 0; }
+.toast-text  { flex: 1; line-height: 1.3; }
+
+.toast-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.toast-close:hover { color: #fff; }
+
+/* ============ NOTIFICATION BELL (Header) ============ */
+.notif-bell-wrapper {
+  position: relative;
+}
+
+.notif-bell-btn {
+  position: relative;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.18s, transform 0.18s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.notif-bell-btn:hover {
+  background: rgba(255, 140, 0, 0.12);
+  transform: scale(1.1);
+}
+
+.notif-bell-btn.notif-bell-active {
+  animation: bellRing 0.6s ease 0s 1;
+}
+
+@keyframes bellRing {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(-15deg); }
+  30%  { transform: rotate(12deg); }
+  45%  { transform: rotate(-10deg); }
+  60%  { transform: rotate(8deg); }
+  75%  { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.notif-bell-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: #FF5722;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+/* ============ BELL DROPDOWN PANEL ============ */
+.notif-bell-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  z-index: 9990;
+  overflow: hidden;
+  animation: dropdownIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* Dark mode dropdown */
+[data-theme="dark"] .notif-bell-dropdown {
+  background: #1e1e2e;
+  border-color: #333;
+}
+
+.notif-bell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  font-weight: 600;
+  font-size: 13px;
+  background: linear-gradient(135deg, #37474F, #546E7A);
+  color: #fff;
+}
+
+[data-theme="dark"] .notif-bell-header {
+  border-bottom-color: #333;
+}
+
+.notif-bell-clear {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notif-bell-clear:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.notif-bell-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 16px;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+}
+
+.notif-bell-empty span:first-child {
+  font-size: 28px;
+}
+
+/* ============ BELL DROPDOWN ITEMS ============ */
+.notif-bell-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+  cursor: default;
+}
+
+[data-theme="dark"] .notif-bell-item {
+  border-bottom-color: #2a2a3a;
+}
+
+.notif-bell-item:last-child {
+  border-bottom: none;
+}
+
+.notif-bell-item-escalation {
+  background: #fff5f3;
+  border-left: 3px solid #FF5722;
+}
+
+[data-theme="dark"] .notif-bell-item-escalation {
+  background: #2a1a18;
+}
+
+.notif-bell-item-pending {
+  background: #f5f9ff;
+  border-left: 3px solid #FF8C00;
+}
+
+[data-theme="dark"] .notif-bell-item-pending {
+  background: #1a1e2a;
+}
+
+.notif-bell-item-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notif-bell-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-bell-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+[data-theme="dark"] .notif-bell-item-title {
+  color: #e0e0e0;
+}
+
+.notif-bell-item-detail {
+  font-size: 11px;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-bell-item-close {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.notif-bell-item-close:hover {
+  color: #FF5722;
+}

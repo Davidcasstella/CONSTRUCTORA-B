@@ -1,0 +1,94 @@
+{
+  "type": "txt",
+  "name": "BIENVENIDAtxttxttxttxttxttxttxttxt.txt",
+  "chunks": [
+    {
+      "text": "¡Hola! 👋 Te damos la bienvenida a PROYECTO BELLAVISTA II (TUNJA). 🏗️",
+      "keywords": [
+        "hola",
+        "damos",
+        "bienvenida",
+        "proyecto",
+        "bellavista",
+        "tunja"
+      ]
+    },
+    {
+      "text": "Es el único proyecto de Vivienda de Interés Prioritario (VIP) en la ciudad.",
+      "keywords": [
+        "único",
+        "proyecto",
+        "vivienda",
+        "interés",
+        "prioritario",
+        "ciudad"
+      ]
+    },
+    {
+      "text": "📍 Ubicación: Sur de Tunja, junto al barrio Ciudad Jardín (vías Bogotá-Tunja y Soracá).",
+      "keywords": [
+        "ubicación",
+        "tunja",
+        "junto",
+        "barrio",
+        "ciudad",
+        "jardín",
+        "vías",
+        "bogotátunja",
+        "soracá"
+      ]
+    },
+    {
+      "text": "¿Qué información te gustaría conocer? 1️⃣ Precios y Tipos de Apartamento 2️⃣ Subsidios y Financiación 3️⃣ Requisitos para aplicar 4️⃣ Horarios para ver el apto",
+      "keywords": [
+        "información",
+        "gustaría",
+        "conocer",
+        "precios",
+        "tipos",
+        "apartamento",
+        "subsidios",
+        "financiación",
+        "requisitos",
+        "aplicar",
+        "horarios",
+        "apto"
+      ]
+    },
+    {
+      "text": "Pregunta: ROYECTO BELLAVISTA II (TUNJA). 🏗️\n\nEs el único p\nRespuesta: oyecto de Vivienda de Interés Prioritario (VIP) en la ciudad.\n\n📍 Ubicación: Sur de Tunja, junto al barrio Ciudad Jardín (vías Bogotá-Tunja y Soracá).\n\n¿Qué información te gustaría conocer?\n1️⃣ Precios y Tipos de Apartamento\n2️⃣ Subsidios y Financiación\n3️⃣ Requisitos para aplicar\n4️⃣ Horarios para ver el apto",
+      "keywords": [
+        "royecto",
+        "bellavista",
+        "tunja",
+        "único",
+        "oyecto",
+        "vivienda",
+        "interés",
+        "prioritario",
+        "ciudad",
+        "ubicación",
+        "junto",
+        "barrio",
+        "jardín",
+        "vías",
+        "bogotátunja",
+        "soracá",
+        "información",
+        "gustaría",
+        "conocer",
+        "precios",
+        "tipos",
+        "apartamento",
+        "subsidios",
+        "financiación",
+        "requisitos",
+        "aplicar",
+        "horarios",
+        "apto"
+      ],
+      "isQA": true
+    }
+  ],
+  "uploadDate": "2026-07-31T05:33:11.253Z"
+}

@@ -95,5 +95,8 @@ scripts/*.log
 # Misc local files
 lsa
 
-# Google Cloud Service Account
+# Google Cloud Credentials & OAuth Client Secrets
 google-service-account.json
+client_secret_*.json
+client_secret_756821249929-psie6vmitlbck0jsg7jjdfnb2hfab90m.apps.googleusercontent.com.json
+
