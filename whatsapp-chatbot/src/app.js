@@ -12,6 +12,9 @@ const { apiLimiter } = require('./middlewares/rate-limit.middleware');
 
 const app = express();
 
+// Confiar en proxies (CloudFront / Nginx / Load Balancer)
+app.set('trust proxy', true);
+
 // ===========================================
 // MIDDLEWARES GLOBALES
 // ===========================================

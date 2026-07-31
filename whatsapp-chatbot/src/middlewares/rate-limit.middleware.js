@@ -114,13 +114,13 @@ const createRateLimiter = (options = {}) => {
 };
 
 /**
- * Rate limiter general para API (100 req/min)
+ * Rate limiter general para API (1000 req/min para soportar polling del Dashboard)
  */
 const apiLimiter = createRateLimiter({
-    maxRequests: 100,
+    maxRequests: 1000,
     windowMs: 60 * 1000,
     name: 'api-general',
-    message: 'Demasiadas solicitudes a la API. Máximo 100 por minuto.'
+    message: 'Demasiadas solicitudes a la API. Máximo 1000 por minuto.'
 });
 
 /**
